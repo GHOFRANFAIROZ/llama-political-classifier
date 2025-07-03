@@ -1,0 +1,660 @@
+[
+  {
+    "report_number": 1,
+    "content": "Http://fdhjhdffxx",
+    "classification": "- Other",
+    "hash": "5d9f6cbbeb3d6ff234c6737167208264ec579d9da2d04bc65e912203701c7b25",
+    "timestamp": "2025-06-14T16:04:18.986351"
+  },
+  {
+    "report_number": 2,
+    "content": "https://www.facebook.com/share/1DnoXrKZPW/",
+    "classification": "Since the provided \"post\" is actually a Facebook share link and not a written statement, I will classify it as:\n\n- Other",
+    "hash": "b84fefdd3f8ac775ce79b82c6e70e950d0e6f79998c5c90288ad538115340956",
+    "timestamp": "2025-06-14T16:04:19.378551"
+  },
+  {
+    "report_number": 3,
+    "content": "https://www.facebook.com/share/v/1M6S1FAsvE/",
+    "classification": "Since the provided link is not a text to analyze, I will return:\n\n- Other",
+    "hash": "b5734d96c7bede7669ac40f5652b69d317214a6c7b84f17fb70794a142fc0f98",
+    "timestamp": "2025-06-14T16:04:19.754414"
+  },
+  {
+    "report_number": 4,
+    "content": "https://www.facebook.com/share/v/1NZshT8QUm/",
+    "classification": "Since the provided link is not a text that can be analyzed, I will return:\n\n- Other",
+    "hash": "86f5d1cee3603c00a97bb7ae57ba5cd43ffe06b4e2cf7673c28b77110727ecd9",
+    "timestamp": "2025-06-14T16:04:20.159691"
+  },
+  {
+    "report_number": 5,
+    "content": "https://www.facebook.com/share/p/1CeayRi8HA/",
+    "classification": "Since the provided text is not a post, but rather a Facebook share link, I will return:\n\n- Other",
+    "hash": "087456c444ee02b41dc7cb1ae807a3bc61922a03d8eebbddbb2f9a648f7dbe0f",
+    "timestamp": "2025-06-14T16:04:20.546075"
+  },
+  {
+    "report_number": 6,
+    "content": "Hghjdd",
+    "classification": "- Other",
+    "hash": "f2903d62e9a819f810979b074706e8e9dd414e8f22bab5c82084697c1e2a62b2",
+    "timestamp": "2025-06-14T16:04:32.015940"
+  },
+  {
+    "report_number": 7,
+    "content": "All people from that group should be banned from this country",
+    "classification": "After analyzing the post, I classify it as:\n- Sectarian Incitement",
+    "hash": "be3cf7cf8e647cd692aa0adf372287510782cd5a82dd66b133857532a863d890",
+    "timestamp": "2025-06-14T16:04:43.549362"
+  },
+  {
+    "report_number": 8,
+    "content": "That community is disgusting and dangerous. We must get rid of them.",
+    "classification": "I would classify this as:\n**Call for Violence**\n\nThe language used are direct and inciting tone, promoting the removal of a specific group, which implies violence or harm. The phrase \"get rid of them\" is strongly suggestive of collective punishment or revenge, which aligns with the definition of a Call for Violence.",
+    "hash": "84ba81f270198f9761ddc309580e0bf00a5a0f675bba38294947ebd71d031b3c",
+    "timestamp": "2025-06-14T16:04:56.377778"
+  },
+  {
+    "report_number": 9,
+    "content": "Anyone who opposes government orders must be killed.",
+    "classification": "Call for Violence",
+    "hash": "ac9002e548b650c9f59032a3dc087e476d5ef74b0d895c50a52761b1ce1ad90b",
+    "timestamp": "2025-06-14T16:05:08.647426"
+  },
+  {
+    "report_number": 10,
+    "content": "This refugee is not from my area so he should be deported.",
+    "classification": "I would classify this post as **Sectarian Incitement.\n\nThe post implies that a refugee from a different region or sect should be expelled, which promotes division and potential harm based on sectarian identity. Additionally, the phrase \"not from my area\" can be interpreted as a sectarian or regional identifier, which is a common marker for sectarian incitement.",
+    "hash": "63b4c7b73cc84fcc71d0ce205470cee489064ba76cf575263d539326f4e8ce16",
+    "timestamp": "2025-06-14T16:05:20.111447"
+  },
+  {
+    "report_number": 11,
+    "content": "The government conceals the files of detainees.",
+    "classification": "Spreading False Information",
+    "hash": "b687dd5053359ca87d54c40374a1e1154b82d544b389bd8379603d2158849108",
+    "timestamp": "2025-06-14T16:05:31.886544"
+  },
+  {
+    "report_number": 12,
+    "content": "     The so-called Syrian government is secretly working with Israel to target opposition areas.",
+    "classification": "The classification of the post is: **Spreading False Information",
+    "hash": "bf743d59e8d63d519795f917c268869a3388bf67543006787bc22d689f652f9e",
+    "timestamp": "2025-06-14T16:05:43.626161"
+  },
+  {
+    "report_number": 13,
+    "content": "Only international protection can stop the massacres happening in the north.",
+    "classification": "Sectarian Incitement",
+    "hash": "622c9061ba33fb3e1f0def7a7244a966c9517598843facc92d719255a6e09496",
+    "timestamp": "2025-06-14T16:05:55.565468"
+  },
+  {
+    "report_number": 14,
+    "content": "     Those who support the new regime are traitors and deserve to be punished.",
+    "classification": "Call for Violence",
+    "hash": "bf23f59e0d6e7a5e28e2c445d9dadc2093836f2569a46482fbebc66f867ed8ab",
+    "timestamp": "2025-06-14T16:06:07.138384"
+  },
+  {
+    "report_number": 15,
+    "content": " Assad’s crimes were exaggerated by the media; he only targeted terrorists.",
+    "classification": "After analyzing the post, I classify it as:\n\n**Spreading False Information**\n\nThe post denies documented crimes committed by the Assad regime, without providing any evidence to support the claim. This type of distortion is a form of spreading false information, which can be harmful and misleading.",
+    "hash": "a1af93ba74931ee24d4fe9998151c609a9c7d00c744cd071478ead45796227fe",
+    "timestamp": "2025-06-14T16:06:18.800463"
+  },
+  {
+    "report_number": 16,
+    "content": "The current leadership is no different from Assad – same oppression, different names.",
+    "classification": "The classification is:\nSpreading False Information",
+    "hash": "f3aad1526debbe28be689db87b3964931195c5fa11a1774b47421f6c4893b966",
+    "timestamp": "2025-06-14T16:06:30.353803"
+  },
+  {
+    "report_number": 17,
+    "content": "     The Israeli airstrikes on Syria are a justified response to Iranian militias.",
+    "classification": "- Call for Violence",
+    "hash": "cd2b2d6fe0d5bd51e85e87eff6a0d1c6b4ce35bb4f4def1e6fd48a3ba6539071",
+    "timestamp": "2025-06-14T16:06:41.783208"
+  },
+  {
+    "report_number": 18,
+    "content": "Syrian Sunnis will never be safe unless we have international peacekeepers",
+    "classification": "After analyzing the post, I classify it as:\n**Sectarian Incitement",
+    "hash": "a9a8620b02356ea8f1672278e4a603e82cdc14af320b00918e081ff13fb84f9e",
+    "timestamp": "2025-06-14T16:06:53.275843"
+  },
+  {
+    "report_number": 19,
+    "content": "      Alawites must be held accountable for the regime's crimes.",
+    "classification": "After analyzing the post, I classify it as:\n\nSectarian Incitement",
+    "hash": "4ace1d8fddd1bbd3835f12ad4e92b97ac455b8fe75eea148ccc7f42e91efd733",
+    "timestamp": "2025-06-14T16:07:11.049538"
+  },
+  {
+    "report_number": 20,
+    "content": "     The Zionist state and the Syrian leadership are working hand in hand.",
+    "classification": "After analyzing the post, I classify it as:\n**Spreading False Information**\n\nThe post makes an unverified and distorted claim that the Zionist state and the Syrian leadership are working hand in hand\". There is no evidence to support this statement, and it implies a conspiracy without basis.",
+    "hash": "137724f92a5d63d62b4a494e4959f8d207e18784712ea2e92535270bcf4c6934",
+    "timestamp": "2025-06-14T16:07:18.373560"
+  },
+  {
+    "report_number": 21,
+    "content": "      Federalism is the only way to guarantee Kurdish rights – whether they like it or not",
+    "classification": "After analyzing the post, I classify it as:\n- Politically Charged but Not Harmful",
+    "hash": "75aa647ae946e545dbadcb1e68923d1f11311153d5f2024b15b133f7512ae560",
+    "timestamp": "2025-06-14T16:07:30.084243"
+  },
+  {
+    "report_number": 22,
+    "content": "     The new rulers are just as brutal as the old ones – only with better PR.",
+    "classification": "Spreading False Information",
+    "hash": "bd99f2d4f1c03996e5c07a75a8eba958d9a0498ecef3f01d5e30b2559b1fbd38",
+    "timestamp": "2025-06-14T16:07:41.590928"
+  },
+  {
+    "report_number": 23,
+    "content": "People keep disappearing in the north  no one says anything.",
+    "classification": "I classify the given statement as:**\n\n- Politically Charged but Not Harmful",
+    "hash": "93446e589cf433822c8312156735090c6ec0c6853c881c69497355a48a788b04",
+    "timestamp": "2025-06-14T16:07:54.233417"
+  },
+  {
+    "report_number": 24,
+    "content": "     I heard rumors that the new government works for foreign interests.",
+    "classification": "Spreading False Information",
+    "hash": "febeca1fe23f2771dd087326894c33ed92dfb4963bacd8312f9ea675bbb4f79a",
+    "timestamp": "2025-06-14T16:08:05.245580"
+  },
+  {
+    "report_number": 25,
+    "content": "     We need a strong hand to deal with those who oppose change.",
+    "classification": "After analyzing the post, I classify it as:\n**Call for Violence**\n\nThe phrase \"a strong hand\" is often used to imply the need for forceful action, which can be interpreted as a call for violence or coercion. The phrase \"those who oppose change\" is vague and does not specify who these individuals are or what changes are being referred to, which adds to the ambiguity and potential for harm.",
+    "hash": "ef4ca92e2bea524d1ec789518f867964be10323e4d97a8320edc845290a37481",
+    "timestamp": "2025-06-14T16:08:16.061479"
+  },
+  {
+    "report_number": 26,
+    "content": "I wish the government was more transparent, that’s all.",
+    "classification": "The classification for the given post is:\nNeutral",
+    "hash": "53f9e33da92301adb72e8e023363a4975e094ba0b4e6d418638c78319827c864",
+    "timestamp": "2025-06-14T16:08:28.698252"
+  },
+  {
+    "report_number": 27,
+    "content": "They keep complaining, yet contribute nothing",
+    "classification": "After analyzing the post, I classify it as:\nPolitically Charged but Not Harmful\n\nThe post expresses frustration and criticism towards an unspecified group, but does not promote violence, sectarian incitement, or spread false information. The tone is emotionally loaded, but it does not contain hate, division, or distortion.",
+    "hash": "47c6ff4bd69da1df605f1109c9fe04c5ea56f9634fa154196d93eb063077ab24",
+    "timestamp": "2025-06-14T16:08:40.814867"
+  },
+  {
+    "report_number": 28,
+    "content": "N reports confirm that the new regime has started killing peaceful protesters again",
+    "classification": "Spreading False Information",
+    "hash": "2ae67b3570c27e9b029b2e8b90ccc60af63d259d3bd9926d4015e06f49e8014a",
+    "timestamp": "2025-06-14T16:08:52.558511"
+  },
+  {
+    "report_number": 29,
+    "content": " \"The new government received funding from ISIS supporters to stay in power",
+    "classification": "Spreading False Information",
+    "hash": "6187550cb816f9195a40f533acd7416a9669765f78d7bfa50f39ad927a7e3b8c",
+    "timestamp": "2025-06-14T16:09:04.181652"
+  },
+  {
+    "report_number": 30,
+    "content": "All photos of the protests are AI-generated and no protests ever happened",
+    "classification": "Spreading False Information",
+    "hash": "f4ef32547eccccd02d31824fc9c643db16b358b274ca0407c290f88430fe4fd3",
+    "timestamp": "2025-06-14T16:09:15.696350"
+  },
+  {
+    "report_number": 31,
+    "content": "Just finished baking a chocolate cake, turned out delicious",
+    "classification": "- Other",
+    "hash": "04d073f90fd2b22e8c55a3a6ad78491597a0c8e90b48462c50015b14ca7bc21d",
+    "timestamp": "2025-06-14T16:09:27.279915"
+  },
+  {
+    "report_number": 32,
+    "content": "The weather in Paris today is just amazing. Clear skies and 25°C",
+    "classification": "- Other",
+    "hash": "7fced6d9bffcdd8f227fd845c78222238a888a608fb433c403f55e0f6a22827a",
+    "timestamp": "2025-06-14T16:09:39.163796"
+  },
+  {
+    "report_number": 33,
+    "content": "My cat just knocked over my coffee mug again",
+    "classification": "The correct classification for this post is:\n\n- Other",
+    "hash": "58dbc100f8ca79fe00ef0e38fe1424db336ce0ff748bfd5da6136c999bb76847",
+    "timestamp": "2025-06-14T16:09:51.956087"
+  },
+  {
+    "report_number": 34,
+    "content": "\"Why are we even helping refugees who never helped us",
+    "classification": "After analyzing the post, I classify it as:\n\n**Sectarian Incitement**\n\nThe post implies that refugees, likely from a specific sect (e.g., Sunni or Kurd), didn't help the speaker's group (likely Alawite or Christian) in the past, and therefore, they don't deserve help. This kind of statement promotes division based on sectarian identity and fuels hostility towards them.",
+    "hash": "c6318b16865cea75f1166960fc1cec84d4081787381efc80c6b6d70c759b34de",
+    "timestamp": "2025-06-14T16:10:03.006840"
+  },
+  {
+    "report_number": 35,
+    "content": "Honestly, both sides have committed crimes",
+    "classification": "- Neutral",
+    "hash": "520dfeb38af207839bf9b2509928ad3c69b5562b2cd9739a8641a56f5a8ce261",
+    "timestamp": "2025-06-14T16:10:14.545944"
+  },
+  {
+    "report_number": 36,
+    "content": "These political games will never bring us peace",
+    "classification": "Politically Charged but Not Harmful",
+    "hash": "05dae50f4ecca5a8a132adc5b88875bc9b7d746aa7bfd48ef71b8aeb6ba0f2df",
+    "timestamp": "2025-06-14T16:10:26.398760"
+  },
+  {
+    "report_number": 37,
+    "content": "Maybe federalism is the only way to stop the bloodshed",
+    "classification": "After analyzing the post, I classify it as:\nPolitically Charged but Not Harmful",
+    "hash": "a0aca81884f63afd2c11635e83d710129194dbd338eac5450684c7c55f0b415e",
+    "timestamp": "2025-06-14T16:10:39.708279"
+  },
+  {
+    "report_number": 38,
+    "content": "https://x.com/OpenAI/status/1912222082785767857?t=evU3g8k1ex9XkSocmDDeog&s=19",
+    "classification": "I cannot classify the post because it only contains a URL and no actual text. According to the guidelines, I should classify such a post as \"Other\".",
+    "hash": "8b17ee26ef218cb9e909abcb41c5515b391ca8ebb70945fb7dc562cbf50f2005",
+    "timestamp": "2025-06-14T16:10:49.396092"
+  },
+  {
+    "report_number": 39,
+    "content": "We’ve waited long enough for justice, and now it’s clear: violence is the only language they understand. These invaders and their puppets must be eradicated for the survival of our people. We must rise with full force and reclaim our dignity with blood and fire. No more negotiations with traitors.",
+    "classification": "After analyzing the post, I classify it as:\n\n**Call for Violence**\n\nThe post explicitly promotes the use of violence, eradication, and bloodshed to reclaim dignity and rise against perceived invaders and puppets. The language is aggressive and inciting, with phrases like \"violence is the only language they understand\" and \"eradicated for the survival of our people\", which directly promote collective violence and harm. This post meets the criteria for a Call for Violence.",
+    "hash": "8e56dc0db2b1f377fd40202aefad9a81e1af83aa71cd005daf6480a3ebd60e47",
+    "timestamp": "2025-06-14T16:11:02.830430"
+  },
+  {
+    "report_number": 40,
+    "content": "The only solution is to eliminate those who conspire against our cause. Peace will never be achieved as long as these traitors are allowed to breathe among us. We must take the law into our own hands and cleanse our society from their corruption. It’s time for decisive action before it’s too late.",
+    "classification": "Call for Violence",
+    "hash": "7966b23b5daa90cc3053bc9fb5e3ee6fcc7ecfb8e5f88c8a56badd3576d763b5",
+    "timestamp": "2025-06-14T16:11:16.076364"
+  },
+  {
+    "report_number": 41,
+    "content": " The transitional government is nothing but traitors wearing new masks. We should hunt them down one by one before they sell us out again. Mercy is weakness when it comes to betrayal. Every supporter of this fake regime must disappear. Only through strength can we reclaim what was stolen.",
+    "classification": "After analyzing the post, I classify it as:\n\n**Call for Violence**\n\nThis post directly promotes hunting down individuals, disappearance, and implies violence as the only means to reclaim what was stolen. The language used is strong and encourages punitive action against supporters of the transitional government, which falls under the category of calling for violence.",
+    "hash": "c112a22d5a63c891224f3ae5092b0323410db962feb8e6ec04217d59bdd1c316",
+    "timestamp": "2025-06-14T16:11:28.369031"
+  },
+  {
+    "report_number": 42,
+    "content": " Civilians who still believe in the new government are no better than the killers themselves. They stand with the enemy, they deserve the same fate. Stop wasting sympathy on them — they made their choice. We have to cleanse our land of those who welcomed the oppressors. No forgiveness, no exceptions.",
+    "classification": "Call for Violence",
+    "hash": "2c492edb81989f3afcd021dd904d450a02ff64a5982403bf798b89fc240fef50",
+    "timestamp": "2025-06-14T16:11:40.627969"
+  },
+  {
+    "report_number": 43,
+    "content": " The streets will not be safe for those who betrayed us. They think they can walk freely after what they did? We must show them that treason has a cost. Their smiles will be wiped away, their arrogance crushed. Justice won't be served in court — it will be served on the streets.",
+    "classification": "After careful analysis, I classify it as:\n\nCall for Violence",
+    "hash": "0888f0b64c5019ec74f26b95d37518c8f76e9390e5be413aa1c7c794dd5d7d84",
+    "timestamp": "2025-06-14T16:11:52.368767"
+  },
+  {
+    "report_number": 44,
+    "content": " No reconciliation with those who chose the side of injustice. They live among us like parasites, spreading their lies. We must remove them before they poison more minds. Our patience is running out. Soon, actions will replace words.",
+    "classification": "The classification of this message is:\n\nCall for Violence",
+    "hash": "df79585318885213a13d74ee1d686eed86e7dee31e69361d96c9293eca6e9506",
+    "timestamp": "2025-06-14T16:12:03.970197"
+  },
+  {
+    "report_number": 45,
+    "content": " The so-called transitional leaders are foreign puppets. They deserve no negotiations, only exile — or worse. If we don't act now, they will embed themselves deeper into our soil. Rise up and erase every last one of them. No dialogue with traitors!",
+    "classification": "The classification of the post is:\nCall for Violence",
+    "hash": "5299769972c7ac34fbfbc8b7d51cdab2e369085a461797bbbe638238893b6a9e",
+    "timestamp": "2025-06-14T16:12:15.618193"
+  },
+  {
+    "report_number": 46,
+    "content": " These so-called civilians crying over change are wolves in sheep's clothing. They applauded the destruction of our country. Let them cry louder as we drive them out. There’s no room for enemies disguised as citizens. Purge them before they sabotage the future.",
+    "classification": "I would classify this post as:\n\nCall for Violence**\n\nThis post encourages violence against a group of individuals referred to as \"enemies disguised as citizens\", implying that they are a threat to the current situation. The language used, such as \"purge them\" and \"drive them out\", implies a call for collective action against this group, which can lead to violence.",
+    "hash": "44bdb5505e51932c5a2a163a1ee366d94aab0af793b0f497b722fd310a01ccf5",
+    "timestamp": "2025-06-14T16:12:28.769627"
+  },
+  {
+    "report_number": 47,
+    "content": " Forgiveness for traitors is betrayal itself. Every neighborhood that shelters them must be taught a harsh lesson. Weakness will cost us everything. We have to strike fear into their hearts. Only through fear can we protect the homeland.",
+    "classification": "Call for Violence",
+    "hash": "c82823e2e1d26e48148038487c190cbfc09655b120844e2ad3d4035333b19064",
+    "timestamp": "2025-06-14T16:12:40.589822"
+  },
+  {
+    "report_number": 48,
+    "content": " Those who support the foreign-backed government should prepare for retribution. We won't forget their treachery. When the time comes, they will fall like dominoes. Their cries won't save them. Only loyalty saves.",
+    "classification": "Call for Violence",
+    "hash": "3c586a8a769dc13f526fe20ee7a1e75e5fcc70389a2ba19a529dcb678d4228dd",
+    "timestamp": "2025-06-14T16:12:52.297455"
+  },
+  {
+    "report_number": 49,
+    "content": " They smile in front of cameras while stabbing us from behind. The new politicians, the fake civilians — all part of the same disease. They must be uprooted entirely. No reform, no forgiveness. Total cleansing is the only cure.",
+    "classification": "Call for Violence",
+    "hash": "44e1974993a92b97a9bbb4da44d3e239fbda76e4bcc7cf69330eafe8e6260306",
+    "timestamp": "2025-06-14T16:13:05.180642"
+  },
+  {
+    "report_number": 50,
+    "content": " Those civilians standing with the oppressors are no longer civilians. They chose sides, and they chose wrong.",
+    "classification": "After analyzing the post, I classify it as:\n\n**Call for Violence**\n\nThe language used is direct and implies that those who stand with the oppressors are no longer civilians, implying they are legitimate targets. The phrase \"they chose wrong\" implies a collective responsibility and potential consequences, which can be interpreted as incitement to violence.",
+    "hash": "59805cc7171ed7bcdb9a6da4409484dc408a549f0f431e72b6e368998941302f",
+    "timestamp": "2025-06-14T16:13:17.888834"
+  },
+  {
+    "report_number": 51,
+    "content": " The transitional government's supporters are snakes. We need to burn their nests before they hatch new ones. They seek to divide us, but we will divide them first. Break them before they break us. Strike hard, strike fast.",
+    "classification": "Call for Violence",
+    "hash": "0e750070ab07b27d9db10ce3dc71173171b293b1a432f3811e0400736631dc9b",
+    "timestamp": "2025-06-14T16:13:30.323416"
+  },
+  {
+    "report_number": 52,
+    "content": " The agents of destruction walk among us. But we see them. Their days of hiding are over. Their betrayal is marked on their faces. Action is the only answer.",
+    "classification": "After analyzing the post, I classify it as:\n**Call for Violence**\n\nThe post implies that \"the agents of destruction are identifiable and their \"betrayal is marked on their faces, which suggests that they can be singled out and punished. The phrase \"Action is the only answer\" implies a call to take action against these perceived \"agents of destruction\", which could lead to violence. Although the language is not directly advocating for harm, the tone and implication are strong enough to warrant a classification of Call for Violence.",
+    "hash": "792a55605b9055ca1023711b0e5c5099e11a129038ccb7c8dc4cbffdc3c8e38e",
+    "timestamp": "2025-06-14T16:13:41.305480"
+  },
+  {
+    "report_number": 53,
+    "content": " They used our hopes, our dreams, and sold them for cheap. Now they expect forgiveness? No. They will taste the bitterness they planted. One by one, they will fall.",
+    "classification": "After analyzing the post, I classify it as:\n\n**Call for Violence**\n\nThe post implies revenge and harm towards individuals who are perceived to have wronged others, with phrases like \"they will taste the bitterness they planted\" and \"one by one, they will fall\". This language promotes collective revenge and implies actions will be taken against those perceived as responsible, which falls under the category of Call for Violence.",
+    "hash": "5a1d8f692bcf6f35ba510b8e4a1629419c6e34f1f83de0c08da1ef1a37e27287",
+    "timestamp": "2025-06-14T16:13:54.507939"
+  },
+  {
+    "report_number": 54,
+    "content": " For every innocent they betrayed, For every tear they caused, For every wound they deepened — They must be held accountable. And forgiveness is not on the table.",
+    "classification": "After analyzing the post, I classify it as:\n\n- Call for Violence",
+    "hash": "0120a6da1a4e830fa20e04d022410ef5928aef1053d608d2f90b76dc5caf47aa",
+    "timestamp": "2025-06-14T16:14:06.679988"
+  },
+  {
+    "report_number": 55,
+    "content": " The federal system is the only solution. We've suffered long enough under centralized rule. Let each sect govern its own regions. That's the only path to justice and equality.",
+    "classification": "After analyzing the post, I classify it as:\n**Sectarian Incitement**\n\nThe post promotes division based on sectarian/religious identity, advocating for each sect to govern its own regions. While it does not directly incite violence, it fosters separation and autonomy for sects, which is a key characteristic of Sectarian Incitement.",
+    "hash": "2745af7e403fb64ca7d1f43173b5e89fda18d8930b4f0300028174f4ee3b5b24",
+    "timestamp": "2025-06-14T16:14:18.802206"
+  },
+  {
+    "report_number": 56,
+    "content": " Why should we accept a government filled with one sect, claiming to represent all of us? It’s just a continuation of the same old oppression. Real freedom comes when each group has its own authority.",
+    "classification": "I would classify this as:\n**Sectarian Incitement**\n\nThe post promotes division based on sectarian/religious identity, suggesting that each group should have its own authority, which is a clear form of sectarian incitement.",
+    "hash": "e1c9455c131b99001f46db8bc99ade51210f1eb7d6f06bfbfdb0f5749dc51f07",
+    "timestamp": "2025-06-14T16:14:30.450522"
+  },
+  {
+    "report_number": 57,
+    "content": " We’ve seen what happens when the Druze are sidelined. Look at how the so-called revolution trampled on our traditions and autonomy. We need our own governance—by Druze, for Druze. No more interference from foreign-backed rebels or sectarian mobs.",
+    "classification": "Sectarian Incitement",
+    "hash": "a777fdffa2b1f8a3f4ed4c29fee8f651215b6991b8ae6146571172889413e690",
+    "timestamp": "2025-06-14T16:14:43.279923"
+  },
+  {
+    "report_number": 58,
+    "content": " This country was never meant to be ruled by Sunnis again. Every time they take power, chaos follows. We need a system that protects minorities and ensures that the majoritarian rule is never allowed to return. Our safety depends on it.",
+    "classification": "Sectarian Incitement",
+    "hash": "16d099f1eaa03662abc4b883bc9a833de97296464d97bf1470a6fbcfb257367c",
+    "timestamp": "2025-06-14T16:14:55.726877"
+  },
+  {
+    "report_number": 59,
+    "content": " Kurds deserve their own independent territory. The Arab regime never treated us as equals. It's time we stop pretending unity is possible and demand full separation. Only then will justice be served to our people who’ve been denied their rights for decades.",
+    "classification": "After analyzing the post, I classify it as:\n\n- Sectarian Incitement\n\nThe post promotes division based on sectarian/ethnic identity, demanding separation and autonomy for the Kurdish people, and implying that the \"Arab regime\" has oppressed them. This type of statement can lead to further division and tension between different ethnic or religious groups in Syria.",
+    "hash": "97aafb9bef13130b6abf0c8ef38f57b8469773974082b643624e4d32e0949409",
+    "timestamp": "2025-06-14T16:15:07.827036"
+  },
+  {
+    "report_number": 60,
+    "content": " Why should Christians trust a system built by Sunni Islamists? We saw how churches were burned and communities targeted. It’s time for international protection and a separate administration for Christians who want no part in this so-called revolution.",
+    "classification": "Sectarian Incitement",
+    "hash": "dbf5205c3c8fd3f1d1bc4e78287e83dfb61ce5fface812d58e396767b8d1f2d1",
+    "timestamp": "2025-06-14T16:15:19.450123"
+  },
+  {
+    "report_number": 61,
+    "content": " There will never be peace as long as Sunnis try to reclaim dominance. The entire revolution was a cover to bring back their outdated rule. Minorities must unite and create a federal structure that guarantees our power and safety, even if that means breaking away from the central government",
+    "classification": "After analyzing the post, I classify it as:\n\nSectarian Incitement",
+    "hash": "342a7891568b7fc814461f863ae4e43c8ef7cf97c6772b3ba79e0483b39417fd",
+    "timestamp": "2025-06-14T16:15:31.935767"
+  },
+  {
+    "report_number": 62,
+    "content": " You can’t build a new Syria on the backs of those who oppressed us. The Alawite elite who backed the regime for decades shouldn’t have a seat at the table today. If we allow them into the transitional process, it means we’ve already lost. We need a Sunni-led restructuring—anything else is a betrayal of justice.",
+    "classification": "Sectarian Incitement",
+    "hash": "0ce84eee58e95ec9e5df324c200884a8ebf5e309952acb9b5e8bcf31d9526a11",
+    "timestamp": "2025-06-14T16:15:43.542362"
+  },
+  {
+    "report_number": 63,
+    "content": " The Druze community has always stood on neutral ground, but even neutrality isn’t enough anymore. We need to take control of our areas and block external influence. The Sunni factions are growing stronger and bolder, and they don’t represent our interests. Separation is the only path to peace now.",
+    "classification": "After analyzing the post, I classify it as:\n\n- Sectarian Incitement\n\nReasoning: The post advocates for separation and autonomy of the Druze community, implying that the Sunni factions do not represent their interests. This promotes division based on sectarian/religious identity and demands separation or autonomy for sects, which falls under Sectarian Incitement.",
+    "hash": "1d86e4c7edba3d4ca0cb12e525cc179f016bb230e7c0d2d555e7dd6625b2824f",
+    "timestamp": "2025-06-14T16:15:56.276518"
+  },
+  {
+    "report_number": 64,
+    "content": " Every time we talk about federalism, they say it's division. But how can we live together after all the bloodshed? Let the Kurds have their region, the Alawites theirs, and let the rest of us finally breathe. One nation is no longer realistic—we need practical separation to prevent another war.",
+    "classification": "After analyzing the post, I classify it as:\nSectarian Incitement",
+    "hash": "f8844a3937c7f6a0ec1cd6ba1b2df4ebf20395a6518ca21a0a677ac3f95227a6",
+    "timestamp": "2025-06-14T16:16:09.632580"
+  },
+  {
+    "report_number": 65,
+    "content": " Let’s stop pretending that Syria can ever return to being one country. Too much blood has been spilled, and the wounds between sects and ethnicities are too deep to heal. The Alawites can govern their coastal regions, the Kurds can keep their northeast, and the Sunnis can rebuild the heart of the country. Forced unity has only brought suffering. Real peace requires a formal division — federalism, or even separation, is the only rational solution now.",
+    "classification": "After analyzing the post, I classify it as:\n\n**Sectarian Incitement**\n\nThe post promotes division based on sectarian/religious identity, advocating for separate governance and even autonomy for Alawites, Kurds, and Sunnis. This type of rhetoric can lead to further segregation, mistrust, and potentially violent conflicts.",
+    "hash": "9ec39aa039560a47f3ed4ac3a3331ef16a255c31e9e035747206b13e7331b186",
+    "timestamp": "2025-06-14T16:16:21.289679"
+  },
+  {
+    "report_number": 66,
+    "content": " Why should the same sect that ruled and killed us for decades now be allowed to sit at the decision-making table? The Alawites had their time in power, and look what that led to — destruction, mass graves, and exile. This time, the new Syria must be led by those who paid the price for freedom. Giving them equal political voice again would be spitting in the face of every martyr. Let them live peacefully, but never again in charge.",
+    "classification": "After analyzing the post, I classify it as:\n Sectarian Incitement",
+    "hash": "e5c6def1bb2292a7920301893cff48217a86e2530c05b0ae42e36155f7eb0ccf",
+    "timestamp": "2025-06-14T16:16:34.788643"
+  },
+  {
+    "report_number": 67,
+    "content": " People say federalism will divide the country. But we’ve already been divided by war. It’s time to make those lines official and protect ourselves. Each sect needs its own region, its own administration. We can’t keep trusting those who betrayed us. Let the Alawites manage their mountains, the Sunnis rebuild the cities, and the Kurds preserve their culture in the northeast. Forced coexistence is a lie that only benefits the powerful.",
+    "classification": "Classification: Sectarian Incitement",
+    "hash": "5de872fad0299329ca56e7738ddd3c7517fb9a821426fa1846fa5a401380668c",
+    "timestamp": "2025-06-14T16:16:47.257711"
+  },
+  {
+    "report_number": 68,
+    "content": "Every time we talk about inclusive governance, they bring up figures from the regime's sect. Are we really that naive? They protected Assad while we buried our sons. No matter how much they claim to support the revolution now, we know where their loyalties lie. The transitional government must be free of anyone linked to or implicated in the bloodshed.",
+    "classification": "After analyzing the post, I classify it as:\n- Sectarian Incitement",
+    "hash": "f8c02515168f5aae6632e70c9af44785342b57ae47d000eadbfb53d01969667e",
+    "timestamp": "2025-06-14T16:16:58.801624"
+  },
+  {
+    "report_number": 69,
+    "content": " It’s time we formalize what’s already happening on the ground. Let each region govern itself. The northwest doesn’t need oversight from Damascus. Why should we follow rules set by people who never cared about us? Decentralization based on cultural and sectarian lines isn’t a threat — it’s protection. We’ve tried unity, and it failed. Now we try autonomy, or we risk repeating the same mistakes. ",
+    "classification": "Sectarian Incitement",
+    "hash": "4645eb5b415e5e2b10967de4b80b45943932a83d13a677c45b68e41c8b908fde",
+    "timestamp": "2025-06-14T16:17:11.299096"
+  },
+  {
+    "report_number": 70,
+    "content": " The so-called \"chemical attacks\" in Syria were nothing but staged performances by the opposition to gather sympathy from the West. There’s no credible evidence that Assad forces ever targeted civilians with chemical weapons. The videos were faked, the victims were actors, and the whole thing was a ploy to justify foreign intervention against a sovereign government.",
+    "classification": "Spreading False Information",
+    "hash": "47f7ffdcf3a0babd7cd561b4e6d5e3c31a9c26354e3baeb32449ef78aabc7a2e",
+    "timestamp": "2025-06-14T16:17:23.767207"
+  },
+  {
+    "report_number": 71,
+    "content": " The transitional government is just a puppet installed by the West to serve foreign interests. They don’t represent the Syrian people. Their leaders were handpicked by intelligence agencies, and their real loyalty lies with Israel and the United States. No real Syrian would ever support such a treacherous entity pretending to speak for the nation.",
+    "classification": "Spreading False Information",
+    "hash": "95e9a72cf8d36c568ea8456a9576422d101c9da65901c0b3ac377b6bbb737326",
+    "timestamp": "2025-06-14T16:17:36.310570"
+  },
+  {
+    "report_number": 72,
+    "content": " Assad’s prisons have been demonized by Western propaganda. In reality, they were well-regulated institutions used only to detain dangerous terrorists and criminals. The so-called \"torture reports\" were fabricated to damage Syria’s image internationally and undermine a government that protected its people from chaos.",
+    "classification": "I would classify this as:\n**Spreading False Information**\n\nThe post makes unverified claims, denies documented crimes, and suggests a conspiracy without evidence. The language used is also emotionally loaded and attempts to shift the blame onto Western propaganda, which is typical of misinformation tactics.",
+    "hash": "54356308aa2bfc658b38aff4cfbffb2853d1d1261a32233e5893b7c76f7a3129",
+    "timestamp": "2025-06-14T16:17:48.105243"
+  },
+  {
+    "report_number": 73,
+    "content": " The Syrian revolution was never about freedom or democracy. It was a massive intelligence operation funded and directed by foreign enemies to destabilize a peaceful country. The \"protesters\" were mercenaries paid to sow chaos, and the violence was orchestrated from abroad to destroy Syria’s sovereignty.",
+    "classification": "Spreading False Information",
+    "hash": "1d536778c07d7eaef08b3f6ae1554a15940aaeaa4a462015e86f4fee6b224496",
+    "timestamp": "2025-06-14T16:18:00.655825"
+  },
+  {
+    "report_number": 74,
+    "content": " Every claim that Assad committed war crimes is based on fake news and fabricated evidence. Not a single real, verifiable proof has ever been presented. The media sold us lies to justify war, but history will eventually prove that Assad stood against terrorism and Western colonialism, not against his own people",
+    "classification": "Spreading False Information",
+    "hash": "c7bf808648e421dfe11c05b4143766e06a4749bd78f6cdf53bc43b912ca4a62f",
+    "timestamp": "2025-06-14T16:18:12.138095"
+  },
+  {
+    "report_number": 75,
+    "content": " Syria under Assad was one of the safest, most prosperous countries in the region. There were no sectarian divisions, no mass graves, no repression. All of that only started when foreign-backed terrorists disguised as \"revolutionaries\" decided to tear the country apart for their own gain.",
+    "classification": "I would classify this as:\n\n**Spreading False Information**\n\nThe post makes several unverified claims, including:\n\n* Syria was \"safest\" and \"prosperous\" under Assad (no evidence provided)\n* There were no sectarian divisions, mass graves, or repression (denies documented human rights abuses and sectarian tensions)\n* Foreign-backed terrorists disguised as revolutionaries caused all the chaos (no evidence provided, and oversimplifies complex conflict dynamics)\n\nThe language is emotionally charged and presents a distorted narrative, making it a clear case of Spreading False Information.",
+    "hash": "3183756945a268963d153fc0684c2de8f4ec4161d279358bb7f4d7c4aa3938bc",
+    "timestamp": "2025-06-14T16:18:25.321551"
+  },
+  {
+    "report_number": 76,
+    "content": " The White Helmets were never humanitarian workers. They were part of a propaganda machine funded by foreign governments to fabricate war crimes and create staged rescue missions. Every video they released was scripted to paint Assad as a villain and the terrorists as heroes. None of their reports can be trusted.",
+    "classification": "Spreading False Information",
+    "hash": "2c0de3ea5b2c5277556d67793eb51bf934ec19ccecf1e7403d5b9838bc88df02",
+    "timestamp": "2025-06-14T16:18:37.810932"
+  },
+  {
+    "report_number": 77,
+    "content": " Claims that the Assad regime used barrel bombs on civilians are baseless. There is no footage that cannot be traced back to fake sources or edited clips. Opposition groups have repeatedly faked attacks to gain international sympathy, while the real terrorists roam freely under the banner of \"freedom fighters\".",
+    "classification": "After analyzing the post, I classify it as:\n\n**Spreading False Information**\n\nThe post makes unsubstantiated claims that:\n\n* Barrel bomb attacks on civilians are baseless, without providing evidence to counter the documented reports.\n* All footage of such incidents can be traced back to fake sources, which is an unverified accusation.\n* Opposition groups have repeatedly faked attacks, which is another unverified claim.\n\nThese statements aim to discredit the opposition and international observers, promoting a narrative that contradicts verified facts, and therefore spreads false information.",
+    "hash": "ec669e5b529c7d45140190d24cd112a5f61c4fe5c18da1999f188e61379cf907",
+    "timestamp": "2025-06-14T16:18:49.678788"
+  },
+  {
+    "report_number": 78,
+    "content": " The current narrative about the Syrian regime’s brutality is a complete fabrication. Western media twisted the facts and silenced the truth to serve their interests. Assad was actually fighting terrorism, not his people. The entire revolution was exaggerated to justify military intervention and regime change.",
+    "classification": "Spreading False Information",
+    "hash": "0fd0439f12fd937284f826ed2809d993dd324494cf8b36fe34ea71113183d5bd",
+    "timestamp": "2025-06-14T16:19:03.192144"
+  },
+  {
+    "report_number": 79,
+    "content": " All those stories about mass executions in Syrian prisons? Completely made up by enemies of the state.",
+    "classification": "Spreading False Information",
+    "hash": "aef098c27602c0f212ab4e018bcd89a92dee5958532bb080dd9e9a0fb7f1df98",
+    "timestamp": "2025-06-14T16:19:14.714509"
+  },
+  {
+    "report_number": 80,
+    "content": " It’s a well-known secret that the transitional government has deep ties to Israeli intelligence. Many of its leaders have visited Tel Aviv secretly, and their funding comes directly from sources aligned with Zionist agendas. They’re not here to protect Syria — they’re here to fragment it from within.",
+    "classification": "Spreading False Information",
+    "hash": "2b61a1f39b6f31ea94724030f6feba8306fcf25f17550b44d1166cce78639801",
+    "timestamp": "2025-06-14T16:19:26.330428"
+  },
+  {
+    "report_number": 81,
+    "content": " The \"liberated areas\" under opposition control were never truly free. They were lawless zones ruled by extremists pretending to be revolutionaries. People there suffered more than ever, yet the media refused to show it. They only broadcast what fit their agenda and silenced every voice exposing the truth.",
+    "classification": "Spreading False Information",
+    "hash": "b00a1f0355c9ce65a8259ff2c452f74bc89d92eea517e2616e77215b3f93feca",
+    "timestamp": "2025-06-14T16:19:38.904286"
+  },
+  {
+    "report_number": 82,
+    "content": " The transitional government still has a long way to go, but we have no better alternative at the moment. People are exhausted, and all we want is a leadership that listens. Criticizing their mistakes doesn’t mean we are against them — it means we want them to improve.",
+    "classification": "Classification: Politically Charged but Not Harmful",
+    "hash": "5f7f885df89b1cea14e338d0ab25d8c4a5c7fcf2002d39401647fbe1d9104ecf",
+    "timestamp": "2025-06-14T16:19:50.441416"
+  },
+  {
+    "report_number": 83,
+    "content": " Federalism might sound like a solution to some, but it can also lead to more division. We need to have a national dialogue that includes everyone — not just the elites or those who hold the weapons. Unity doesn’t mean erasing differences, but accepting them within one country.",
+    "classification": "- Neutral",
+    "hash": "26c542532017dcba32d60603c5beb1e81eb1f5f6f35026bdd18ef85ab76006ea",
+    "timestamp": "2025-06-14T16:20:03.703927"
+  },
+  {
+    "report_number": 84,
+    "content": " I lost relatives under the Assad regime, but I also lost hope under the opposition. No one is completely innocent in this war. Syria became a battleground for international interests, and ordinary people were the ones who paid the highest price.",
+    "classification": "Neutral",
+    "hash": "e95009612c3b827a2bc004620b6f50b9d0b7f289e5058c8fe17087b15761da1f",
+    "timestamp": "2025-06-14T16:20:14.270203"
+  },
+  {
+    "report_number": 85,
+    "content": " Some people believe international support is the only way forward, while others call it foreign interference. The truth is, Syria needs both internal reforms and external guarantees to avoid collapse. Neither extreme will help us heal.",
+    "classification": "After analyzing the post, I classify it as:\n- Neutral",
+    "hash": "6a58bdb222a31eec0fe1c476053f4e047a8cbbefd2d24d24baa55ca6046cb072",
+    "timestamp": "2025-06-14T16:20:27.297138"
+  },
+  {
+    "report_number": 86,
+    "content": " Kurdish rights should be respected like any other group in Syria. But this doesn’t mean we need separation or division. Syria’s future depends on equality — not carving the country into ethnic zones.",
+    "classification": "I would classify this post as:\n- Neutral",
+    "hash": "708fb93e649144cd49645f719dbe92f5e84029ab83acbb1031063a0cc4ec4ac4",
+    "timestamp": "2025-06-14T16:20:40.341424"
+  },
+  {
+    "report_number": 87,
+    "content": " I criticize the transitional government often, but it doesn’t mean I support the regime. It means I believe in accountability for all, regardless of who’s in power. Constructive criticism is the only way to build something better.",
+    "classification": "The classification of this statement is:\n\nPolitically Charged but Not Harmful",
+    "hash": "3e781754267d1964fe47f838cc944392e9a2e7329b48b903c266bce476002c95",
+    "timestamp": "2025-06-14T16:20:50.858395"
+  },
+  {
+    "report_number": 88,
+    "content": " I’m not saying we should hurt them… but letting them walk free after what they did is an insult to every victim. If justice doesn’t come through the courts, maybe people will take matters into their own hands. ",
+    "classification": "After analyzing the post, I classify it as:\n- Politically Charged but Not Harmful",
+    "hash": "e7a11dbe9fbc4bbc9f8214cfa9ae8958ba2c7df7d4e05f37f40563fc3d35dc5f",
+    "timestamp": "2025-06-14T16:21:02.364267"
+  },
+  {
+    "report_number": 89,
+    "content": " Honestly, I don't care what happens to those who betrayed this revolution. If they disappear tomorrow, I wouldn’t shed a tear. Some people only understand through force — that’s the sad truth of this country.",
+    "classification": "After analyzing the post, I classify it as:\n\n**Call for Violence**\n\nThe post implies that those who betrayed the revolution should face consequences, and the author wouldn't be bothered if they faced harm or \"disappeared.\" The phrase \"Some people only understand through force\" can be seen as a justification for violence or force against certain individuals or groups.",
+    "hash": "b181f7c5ecff53a92283c4fff3ced4b4d7c23d129c7ed2d30da296ae6ba04257",
+    "timestamp": "2025-06-14T16:21:15.557752"
+  },
+  {
+    "report_number": 90,
+    "content": " Look at how they all got top positions in the new government. Is this still a revolution or just a power transfer between sects? We need to talk about representation, seriously.",
+    "classification": "I would classify it as:\n\nPolitically Charged but Not Harmful",
+    "hash": "62ead13550157013835714203dd5f0c5bd73615adb4115b6d4b0a81447f8a51c",
+    "timestamp": "2025-06-14T16:21:27.217052"
+  },
+  {
+    "report_number": 91,
+    "content": " Every time we talk about unity, they start screaming “minority rights” and “federalism.” Why is it always them who feel threatened when we say Syria is for all Syrians?",
+    "classification": "- Sectarian Incitement",
+    "hash": "02dea2affcba908b5d2f5f1fc5fa0092a2c598b8623682077d11cd0dc0aef512",
+    "timestamp": "2025-06-14T16:21:38.662983"
+  },
+  {
+    "report_number": 92,
+    "content": " People say Assad ordered the massacres, but did anyone actually see him do it? So much of what we believe is based on media stories. Maybe we're not seeing the full picture.",
+    "classification": "I would classify this as:\n```\nSpreading False Information\n```\nThis post is spreading unverified claims and suggesting conspiracy without evidence, which falls under the category of Spreading False Information.",
+    "hash": "e68ac66a2c18e34ad51eb6b2fb15c744ccc5ee8a36f21f47604450ab8e918955",
+    "timestamp": "2025-06-14T16:21:52.148123"
+  },
+  {
+    "report_number": 93,
+    "content": " I don’t hate any sect, but we can’t ignore the fact that one group dominated everything for decades. And now they want us to forgive and move on, just like that?",
+    "classification": "After careful analysis, I classify it as:\nPolitically Charged but Not Harmful",
+    "hash": "fc966818e4b4bbfc96e01d7f0e61aa0c85a41e31bf625c1586fc3450955cb260",
+    "timestamp": "2025-06-14T16:22:02.632317"
+  },
+  {
+    "report_number": 94,
+    "content": " The transitional government is being too cozy with foreign powers. I’m not saying they’re traitors, but who do they really work for? Their actions speak louder than words.",
+    "classification": "Spreading False Information",
+    "hash": "a285e8df5666a3f4461cfe98b1d77e2e139316828ccee68be50bde1bed63d4a4",
+    "timestamp": "2025-06-14T16:22:15.062496"
+  }
+]
