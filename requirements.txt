@@ -11,3 +11,4 @@ torch
 pandas
 streamlit
 certifi
+selenium
