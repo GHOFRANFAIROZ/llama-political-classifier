@@ -3,8 +3,9 @@ from openai import OpenAI
 from dotenv import load_dotenv
 import os
 import gspread
+import json
 from datetime import datetime
-from oauth2client.service_account import ServiceAccountCredentials
+from google.oauth2 import service_account
 from extract_utils import extract_text_from_tweet_url
 
 app = Flask(__name__)
@@ -17,11 +18,16 @@ client = OpenAI(
 )
 
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-creds = ServiceAccountCredentials.from_json_keyfile_name("client_secrets.json", scope)
+creds_json = os.environ.get("GOOGLE_SERVICE_CREDS")
+
+if not creds_json:
+    raise ValueError("GOOGLE_SERVICE_CREDS environment variable not set.")
+
+creds_dict = json.loads(creds_json)
+creds = service_account.Credentials.from_service_account_info(creds_dict, scopes=scope)
 sheet_client = gspread.authorize(creds)
 spreadsheet = sheet_client.open_by_url(os.getenv("GOOGLE_SHEET_URL"))
-sheet = spreadsheet.worksheet("Extension Reports")  # اسم الشيت
-
+sheet = spreadsheet.worksheet("Extension Reports")  
 def build_prompt(text):
     return f'''
 You are an advanced AI content classification agent working on political posts in the Syrian context.
