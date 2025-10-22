@@ -1,0 +1,18 @@
+{
+  "report_data": {
+    "طابع زمني": "4:55:56 م 2025/04/16",
+    "Post or Account Link": "\"Why are we even helping refugees who never helped us",
+    "Content Type ": "Sectarian Incitement",
+    "Upload Screenshot of Post or Account ": "",
+    "Additional Notes ": "",
+    "Groq Classification": "Sectarian Incitement"
+  },
+  "classification": "After analyzing the post, I classify it as:\nSectarian Incitement \n\nThe post implies that refugees (likely Syrian refugees) are being helped, but the speaker believes they never helped \"us\" (which implies a sectarian or religious identity). This is a clear example of sectarian incitement, as it promotes division and resentment based on religious identity.",
+  "drive_files": [
+    {
+      "name": "info.json",
+      "id": "181_0Msb4Vz4DmqMmwmU8hPQshrh0mwkz",
+      "uploaded_at": "2025-06-13T12:57:09.816Z"
+    }
+  ]
+}

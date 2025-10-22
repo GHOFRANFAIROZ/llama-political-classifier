@@ -1,0 +1,18 @@
+{
+  "report_data": {
+    "طابع زمني": "10:40:42 ص 2025/04/30",
+    "Post or Account Link": " Every time we talk about unity, they start screaming “minority rights” and “federalism.” Why is it always them who feel threatened when we say Syria is for all Syrians?",
+    "Content Type ": "Spreading False Information",
+    "Upload Screenshot of Post or Account ": "",
+    "Additional Notes ": "",
+    "Groq Classification": "After analyzing the post, I classify it as:\n**Sectarian Incitement**\n\nThe phrase \"they start screaming\" creates a sense of opposition to a specific group, implying that this group is the one who always feels threatened when the idea of unity is mentioned. The use of \"they\" creates a sense of othering, which is a characteristic of sectarian incitement. Additionally, the mention of \"minority rights\" and \"federalism\" as something that is being opposed suggests that the post is promoting division based on sectarian identity."
+  },
+  "classification": "After analyzing the post, I classify it as:\n\n- Sectarian Incitement",
+  "drive_files": [
+    {
+      "name": "info.json",
+      "id": "14oOrCYRfjmUzymSbyUYI2WWfS-DlEeDb",
+      "uploaded_at": "2025-06-13T13:08:47.310Z"
+    }
+  ]
+}

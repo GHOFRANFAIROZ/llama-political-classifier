@@ -1,0 +1,18 @@
+{
+  "report_data": {
+    "طابع زمني": "5:37:07 ص 2025/03/27",
+    "Post or Account Link": "https://www.facebook.com/share/v/1M6S1FAsvE/",
+    "Content Type ": "نشر معلومات كاذبة",
+    "Upload Screenshot of Post or Account ": "https://drive.google.com/open?id=1x6gBIcC760VILQGK0NcXfk4aD-Vasrcr",
+    "Additional Notes ": "",
+    "Groq Classification": "I classify the given link as \"**Other**\" since it does not contain any text that can be analyzed for classification. The link appears to be a shared post, but there is no text or content provided to classify."
+  },
+  "classification": "Since the provided \"post\" is actually a Facebook link, I will assume it's not possible to classify it. Therefore, I will return:\n\n- Other",
+  "drive_files": [
+    {
+      "name": "info.json",
+      "id": "1ZVmBssd78-PX8rwSfmGQTW6Ajb0gd7O1",
+      "uploaded_at": "2025-06-13T12:51:36.399Z"
+    }
+  ]
+}

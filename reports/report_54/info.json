@@ -1,0 +1,18 @@
+{
+  "report_data": {
+    "طابع زمني": "10:26:30 م 2025/04/29",
+    "Post or Account Link": " For every innocent they betrayed, For every tear they caused, For every wound they deepened — They must be held accountable. And forgiveness is not on the table.",
+    "Content Type ": "Sectarian Incitement",
+    "Upload Screenshot of Post or Account ": "",
+    "Additional Notes ": "",
+    "Groq Classification": "After analyzing the post, I classify it as:\n**Call for Violence**\n\nThe language used is strong and implies that someone (not specified) must be held accountable for past harm, with no mention of a peaceful or judicial process. The phrase \"forgiveness is not on the table\" suggests a desire for retribution, which can be seen as a call for violence."
+  },
+  "classification": "After analyzing the post, I classify it as:\n\n**Call for Violence**\n\nThe language used in the post implies a demand for punishment or retribution, which falls under the \"Call for Violence\" category. The phrase \"They must be held accountable\" implies a sense of punishment or retribution, and the phrase \"forgiveness is not on the table\" reinforces this notion. Although the post does not explicitly call for violence, the implied demand for accountability and punishment creates a tone that promotes violence or retribution.",
+  "drive_files": [
+    {
+      "name": "info.json",
+      "id": "1ZYtPeLe3Gi46r-YQE8Fjkq6W5hQpSocc",
+      "uploaded_at": "2025-06-13T13:01:14.439Z"
+    }
+  ]
+}

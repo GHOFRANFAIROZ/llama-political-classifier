@@ -1,0 +1,18 @@
+{
+  "report_data": {
+    "طابع زمني": "10:15:09 ص 2025/04/30",
+    "Post or Account Link": " It’s a well-known secret that the transitional government has deep ties to Israeli intelligence. Many of its leaders have visited Tel Aviv secretly, and their funding comes directly from sources aligned with Zionist agendas. They’re not here to protect Syria — they’re here to fragment it from within.",
+    "Content Type ": "Spreading False Information",
+    "Upload Screenshot of Post or Account ": "",
+    "Additional Notes ": "",
+    "Groq Classification": "After analyzing the post, I classify it as:\n**Spreading False Information**\n\nThe post makes unverified claims about the transitional government's ties to Israeli intelligence, secret visits, and funding sources aligned with Zionist agendas without providing any evidence. This is a classic example of spreading false information, as it promotes a conspiracy theory without verifying the claims."
+  },
+  "classification": "Spreading False Information",
+  "drive_files": [
+    {
+      "name": "info.json",
+      "id": "152Kh70R2FQhrTIlo84Vq_OoBK1MrG547",
+      "uploaded_at": "2025-06-13T13:06:35.845Z"
+    }
+  ]
+}

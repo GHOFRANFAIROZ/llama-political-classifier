@@ -1,0 +1,18 @@
+{
+  "report_data": {
+    "طابع زمني": "10:33:01 م 2025/04/29",
+    "Post or Account Link": " The federal system is the only solution. We've suffered long enough under centralized rule. Let each sect govern its own regions. That's the only path to justice and equality.",
+    "Content Type ": "Sectarian Incitement",
+    "Upload Screenshot of Post or Account ": "",
+    "Additional Notes ": "",
+    "Groq Classification": "After analyzing the post, I classify it as:\n**Sectarian Incitement**\n\nThe post promotes division based on sectarian/religious identity, advocating for leadership based on sect. Specifically, it suggests that each sect should govern its own regions, implying that the current system is unfair to certain sects. This type of language promotes separation and autonomy for sects, which falls under the Sectarian Incitement category."
+  },
+  "classification": "Sectarian Incitement",
+  "drive_files": [
+    {
+      "name": "info.json",
+      "id": "1GAIxWhMlmvcwhQOvGqMtQ9hug6xXY1nf",
+      "uploaded_at": "2025-06-13T13:01:27.487Z"
+    }
+  ]
+}

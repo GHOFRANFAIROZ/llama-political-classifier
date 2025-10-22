@@ -1,0 +1,18 @@
+{
+  "report_data": {
+    "طابع زمني": "8:59:18 م 2025/04/01",
+    "Post or Account Link": "https://www.facebook.com/share/v/1NZshT8QUm/",
+    "Content Type ": "تحريض طائفي",
+    "Upload Screenshot of Post or Account ": "https://drive.google.com/open?id=1DoEH5fhO1RFb637DVK0ntw9roFJ8G3ec",
+    "Additional Notes ": "",
+    "Groq Classification": "Since the provided content is just a Facebook link, I would classify it as 🔟 Other"
+  },
+  "classification": "Since the provided \"post\" is actually a Facebook link, I'll assume it's a share, and I'll classify it as:\n\n- Other",
+  "drive_files": [
+    {
+      "name": "info.json",
+      "id": "1p70vJH7Xs-kb6vXxOzAUhg2oiNEdn6nM",
+      "uploaded_at": "2025-06-13T12:51:40.317Z"
+    }
+  ]
+}

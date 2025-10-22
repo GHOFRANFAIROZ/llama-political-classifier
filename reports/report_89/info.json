@@ -1,0 +1,18 @@
+{
+  "report_data": {
+    "طابع زمني": "10:40:13 ص 2025/04/30",
+    "Post or Account Link": " Honestly, I don't care what happens to those who betrayed this revolution. If they disappear tomorrow, I wouldn’t shed a tear. Some people only understand through force — that’s the sad truth of this country.",
+    "Content Type ": "Spreading False Information",
+    "Upload Screenshot of Post or Account ": "",
+    "Additional Notes ": "",
+    "Groq Classification": "🔴 Call for Violence"
+  },
+  "classification": "I classify the post as:\n- Call for Violence",
+  "drive_files": [
+    {
+      "name": "info.json",
+      "id": "1Z_m-jUZ8zKNBRpxXfqEVsJoV1wtKG8UQ",
+      "uploaded_at": "2025-06-13T13:08:22.688Z"
+    }
+  ]
+}

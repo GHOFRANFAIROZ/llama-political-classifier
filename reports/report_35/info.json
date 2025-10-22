@@ -1,0 +1,18 @@
+{
+  "report_data": {
+    "طابع زمني": "5:21:20 م 2025/04/16",
+    "Post or Account Link": "Honestly, both sides have committed crimes",
+    "Content Type ": "Call for Violence",
+    "Upload Screenshot of Post or Account ": "",
+    "Additional Notes ": "",
+    "Groq Classification": "After analyzing the post, I classify it as:\n**Neutral**\n\nThe post states a verified fact, acknowledging that both sides have committed wrongdoing, without promoting hate, violence, or division. The tone is neutral, and there's no manipulation, hostility, or distortion. The post simply presents a factual statement, making it a Neutral classification."
+  },
+  "classification": "- Neutral",
+  "drive_files": [
+    {
+      "name": "info.json",
+      "id": "1Cs36gZXDeb4HAgXj-J2NpScO_PeXDmUx",
+      "uploaded_at": "2025-06-13T12:57:22.015Z"
+    }
+  ]
+}

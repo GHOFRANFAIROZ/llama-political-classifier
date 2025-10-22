@@ -1,0 +1,18 @@
+{
+  "report_data": {
+    "طابع زمني": "6:28:36 م 2025/04/29",
+    "Post or Account Link": " Those who support the foreign-backed government should prepare for retribution. We won't forget their treachery. When the time comes, they will fall like dominoes. Their cries won't save them. Only loyalty saves.",
+    "Content Type ": "Call for Violence",
+    "Upload Screenshot of Post or Account ": "",
+    "Additional Notes ": "",
+    "Groq Classification": "After analyzing the post, I classify it as:\n**Call for Violence**\n\nThe post implies collective retribution against those who support the foreign-backed government, stating that \"they will fall like dominoes\" and their \"cries won't save them\". This language is reminiscent of indirect calls to violence, where the speaker is not directly advocating for violence, but creating an atmosphere where violence is seen as a justified response. The phrase \"only loyalty saves\" further reinforces this interpretation, implying that those who are loyal to the speaker's cause will be spared, while others will face retribution. This language is not merely politically charged but actively promotes a violent response."
+  },
+  "classification": "- Call for Violence",
+  "drive_files": [
+    {
+      "name": "info.json",
+      "id": "1j7T5EV2m0oIpo3ajU3q036aIcegEXgau",
+      "uploaded_at": "2025-06-13T12:59:59.539Z"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "report_data": {
+    "طابع زمني": "10:14:37 ص 2025/04/30",
+    "Post or Account Link": " The current narrative about the Syrian regime’s brutality is a complete fabrication. Western media twisted the facts and silenced the truth to serve their interests. Assad was actually fighting terrorism, not his people. The entire revolution was exaggerated to justify military intervention and regime change.",
+    "Content Type ": "Spreading False Information",
+    "Upload Screenshot of Post or Account ": "",
+    "Additional Notes ": "",
+    "Groq Classification": "Spreading False Information"
+  },
+  "classification": "After analyzing the post, I classify it as:\n**Spreading False Information**\n\nThe post contains unverified claims that the Syrian regime's brutality is a fabrication and that Western media twisted facts to justify military intervention and regime change. The statement \"Assad was actually fighting terrorism, not his people\" is also an unverified and distorted claim that denies documented crimes.",
+  "drive_files": [
+    {
+      "name": "info.json",
+      "id": "1BfOFZ1t6srPP_msl_1mG2wL5PAF3soWS",
+      "uploaded_at": "2025-06-13T13:06:10.943Z"
+    }
+  ]
+}

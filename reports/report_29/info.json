@@ -1,0 +1,18 @@
+{
+  "report_data": {
+    "طابع زمني": "4:45:58 م 2025/04/16",
+    "Post or Account Link": " \"The new government received funding from ISIS supporters to stay in power",
+    "Content Type ": "Spreading False Information",
+    "Upload Screenshot of Post or Account ": "",
+    "Additional Notes ": "",
+    "Groq Classification": "Spreading False Information"
+  },
+  "classification": "After analyzing the post, I classify it as:\n\n**Spreading False Information**\n\nThe post makes a specific accusation without providing any evidence, which is a hallmark of spreading false information. The claim that the new government received funding from ISIS supporters is unsubstantiated and lacks any credible sources, making it a spreading of false information.",
+  "drive_files": [
+    {
+      "name": "info.json",
+      "id": "1Cq9XU40rhlwxPe29LoLwCtje1X6eEr9C",
+      "uploaded_at": "2025-06-13T12:56:11.581Z"
+    }
+  ]
+}

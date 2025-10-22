@@ -1,0 +1,18 @@
+{
+  "report_data": {
+    "طابع زمني": "12:46:29 م 2025/04/21",
+    "Post or Account Link": "https://x.com/OpenAI/status/1912222082785767857?t=evU3g8k1ex9XkSocmDDeog&s=19",
+    "Content Type ": "Spreading False Information",
+    "Upload Screenshot of Post or Account ": "",
+    "Additional Notes ": "",
+    "Groq Classification": "Since the provided \"post\" is just a URL and not an actual post with content, I will classify it as:\n\n- Other"
+  },
+  "classification": "Since the post only shares a link without any text, I would classify it as:\n\n- Other",
+  "drive_files": [
+    {
+      "name": "info.json",
+      "id": "1trGI6SK7vY3R56GT9JqEtqLtmdChPSr8",
+      "uploaded_at": "2025-06-13T12:57:57.008Z"
+    }
+  ]
+}

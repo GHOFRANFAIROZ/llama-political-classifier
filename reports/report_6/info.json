@@ -1,0 +1,18 @@
+{
+  "report_data": {
+    "طابع زمني": "12:20:29 ص 2025/04/02",
+    "Post or Account Link": "Hghjdd",
+    "Content Type ": "تحريض طائفي",
+    "Upload Screenshot of Post or Account ": "https://drive.google.com/open?id=1PZHSGazUM_XF1TcCQ_a-YyWqBtayjAtf",
+    "Additional Notes ": "",
+    "Groq Classification": "Other"
+  },
+  "classification": "Other",
+  "drive_files": [
+    {
+      "name": "info.json",
+      "id": "1oZ1oSYAiWSf1Ah7YwRswGfmIDT5Dk-Or",
+      "uploaded_at": "2025-06-13T12:51:46.744Z"
+    }
+  ]
+}

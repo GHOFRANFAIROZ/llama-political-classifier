@@ -1,0 +1,18 @@
+{
+  "report_data": {
+    "طابع زمني": "10:40:32 ص 2025/04/30",
+    "Post or Account Link": " Look at how they all got top positions in the new government. Is this still a revolution or just a power transfer between sects? We need to talk about representation, seriously.",
+    "Content Type ": "Spreading False Information",
+    "Upload Screenshot of Post or Account ": "",
+    "Additional Notes ": "",
+    "Groq Classification": "After analyzing the post, I classify it as:\n\nPolitically Charged but Not Harmful\n\nReasoning:\n\nThe post expresses frustration and skepticism towards the new government, questioning the representation and power dynamics. While the tone is critical, it does not contain hate speech, promotion of violence, or spreading of false information. The post asks a legitimate question about representation and does not promote division based on sects, but rather calls for a discussion on the topic. This falls under the category of strong criticism or skepticism without falsehoods, hate, or division, which is classified as Politically Charged but Not Harmful."
+  },
+  "classification": "Politically Charged but Not Harmful",
+  "drive_files": [
+    {
+      "name": "info.json",
+      "id": "1_RY8T2amIO_CHhJh5TIAxAqYcK5A66FA",
+      "uploaded_at": "2025-06-13T13:08:34.980Z"
+    }
+  ]
+}

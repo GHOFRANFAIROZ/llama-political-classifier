@@ -1,0 +1,18 @@
+{
+  "report_data": {
+    "طابع زمني": "1:48:31 م 2025/04/14",
+    "Post or Account Link": "The current leadership is no different from Assad – same oppression, different names.",
+    "Content Type ": "Spreading False Information",
+    "Upload Screenshot of Post or Account ": "https://drive.google.com/open?id=1GZPwIsLPXDwGiVVhqglwXPDPSk-wam4z",
+    "Additional Notes ": "",
+    "Groq Classification": "Spreading False Information"
+  },
+  "classification": "Spreading False Information",
+  "drive_files": [
+    {
+      "name": "info.json",
+      "id": "1F2huc2taT5qeU_BYovMdejQRO1vDuo3c",
+      "uploaded_at": "2025-06-13T12:53:37.794Z"
+    }
+  ]
+}

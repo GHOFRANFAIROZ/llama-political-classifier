@@ -1,0 +1,18 @@
+{
+  "report_data": {
+    "طابع زمني": "5:23:32 م 2025/04/16",
+    "Post or Account Link": "Maybe federalism is the only way to stop the bloodshed",
+    "Content Type ": "Spreading False Information",
+    "Upload Screenshot of Post or Account ": "",
+    "Additional Notes ": "",
+    "Groq Classification": "- Politically Charged but Not Harmful"
+  },
+  "classification": "After analyzing the post, I classify it as:\nPolitically Charged but Not Harmful",
+  "drive_files": [
+    {
+      "name": "info.json",
+      "id": "1o5wlgi4vgOzQLlMDz-1dyfsEx8JGaKMF",
+      "uploaded_at": "2025-06-13T12:57:45.568Z"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "report_data": {
+    "طابع زمني": "6:29:31 م 2025/04/29",
+    "Post or Account Link": " They smile in front of cameras while stabbing us from behind. The new politicians, the fake civilians — all part of the same disease. They must be uprooted entirely. No reform, no forgiveness. Total cleansing is the only cure.",
+    "Content Type ": "Call for Violence",
+    "Upload Screenshot of Post or Account ": "",
+    "Additional Notes ": "",
+    "Groq Classification": "Call for Violence"
+  },
+  "classification": "After careful analysis, I classify it as:\n\nCall for Violence\n\nThe post indirectly promotes violence by using words like \"uprooted entirely\" and \"no reform, no forgiveness\", implying collective revenge or eradication. The language used is strong and implies a complete removal of a perceived threat, which falls under the category of Call for Violence.",
+  "drive_files": [
+    {
+      "name": "info.json",
+      "id": "1y-HgVtWOHPtsUsJbaIyniiEu8CnkBwxT",
+      "uploaded_at": "2025-06-13T13:00:12.071Z"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "report_data": {
+    "طابع زمني": "4:20:11 م 2025/04/16",
+    "Post or Account Link": "     I heard rumors that the new government works for foreign interests.",
+    "Content Type ": "Spreading False Information",
+    "Upload Screenshot of Post or Account ": "",
+    "Additional Notes ": "",
+    "Groq Classification": "Classification: **Spreading False Information"
+  },
+  "classification": "Spreading False Information",
+  "drive_files": [
+    {
+      "name": "info.json",
+      "id": "1ZdyBcTPlLsZVgohJDWurAvH4LuJdrCko",
+      "uploaded_at": "2025-06-13T12:55:11.329Z"
+    }
+  ]
+}

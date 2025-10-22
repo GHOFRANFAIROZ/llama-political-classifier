@@ -1,0 +1,18 @@
+{
+  "report_data": {
+    "طابع زمني": "10:14:27 ص 2025/04/30",
+    "Post or Account Link": " Claims that the Assad regime used barrel bombs on civilians are baseless. There is no footage that cannot be traced back to fake sources or edited clips. Opposition groups have repeatedly faked attacks to gain international sympathy, while the real terrorists roam freely under the banner of \"freedom fighters\".",
+    "Content Type ": "Spreading False Information",
+    "Upload Screenshot of Post or Account ": "",
+    "Additional Notes ": "",
+    "Groq Classification": "After analyzing the post, I classify it as:\n```\nSpreading False Information\n```\nThe post makes unverified claims about the Assad regime's use of barrel bombs, denies documented crimes, and makes accusations without identifying actors clearly (e.g., \"fake sources\" and \"edited clips\"). The post also spreads misinformation by claiming that opposition groups have repeatedly faked attacks, which is an unsubstantiated claim."
+  },
+  "classification": "The classification is: Spreading False Information",
+  "drive_files": [
+    {
+      "name": "info.json",
+      "id": "1RM0kTDYal5MzMWwOW_kYpk-pXJvVv-UE",
+      "uploaded_at": "2025-06-13T13:05:59.409Z"
+    }
+  ]
+}

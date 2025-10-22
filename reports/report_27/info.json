@@ -1,0 +1,18 @@
+{
+  "report_data": {
+    "طابع زمني": "4:40:49 م 2025/04/16",
+    "Post or Account Link": "They keep complaining, yet contribute nothing",
+    "Content Type ": "Call for Violence",
+    "Upload Screenshot of Post or Account ": "",
+    "Additional Notes ": "",
+    "Groq Classification": "Politically Charged but Not Harmful"
+  },
+  "classification": "Classifying this brief and somewhat ambiguous post requires careful consideration.\n\nThe post does not directly promote violence, incite sectarian hate, or spread false claims. However, it does convey a sense of frustration and criticism, without specifying the subject or the intended audience.\n\nConsidering the Syrian context and the provided guidelines, I classify this post as:\n```\nPolitically Charged but Not Harmful\n```\nThe post expresses a frustrated tone, implying that some individuals or groups are not contributing to a solution, but it does not promote hate, division, or violence. It is emotionally loaded but does not contain falsehoods or harmful content.",
+  "drive_files": [
+    {
+      "name": "info.json",
+      "id": "13wlojjHQaRUoaq7r3V8eRscno0upj7jz",
+      "uploaded_at": "2025-06-13T12:55:47.929Z"
+    }
+  ]
+}

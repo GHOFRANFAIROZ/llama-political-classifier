@@ -1,0 +1,18 @@
+{
+  "report_data": {
+    "طابع زمني": "6:34:01 م 2025/04/29",
+    "Post or Account Link": " The agents of destruction walk among us. But we see them. Their days of hiding are over. Their betrayal is marked on their faces. Action is the only answer.",
+    "Content Type ": "Call for Violence",
+    "Upload Screenshot of Post or Account ": "",
+    "Additional Notes ": "",
+    "Groq Classification": "**Call for Violence**\n\nReasoning:\nAlthough the language is not directly violent, the tone and phrases used imply collective action against a perceived enemy. The phrase \"Action is the only answer\" suggests a call to take action, and the context of \"agents of destruction\" and \"betrayal marked on their faces\" creates a sense of urgency and righteousness, which can indirectly promote violence. The language is strong and accusatory, leaving little room for interpretation. This post is closer to a Call for Violence than a Neutral or Politically Charged but Not Harmful post."
+  },
+  "classification": "After analyzing the post, I classify it as:\n**Call for Violence**\n\nThe post implies that certain individuals (\"agents of destruction\") are hiding and will be exposed, and that \"their days of hiding are over\". The phrase \"their betrayal is marked on their faces\" suggests a sense of collective guilt or shame, and the final statement \"Action is the only answer\" implies a call for action, which in this context, is likely to be violent. While the language is somewhat indirect, the overall tone and phrasing suggest a call to action against these perceived \"agents of destruction\", which falls under the category of Call for Violence.",
+  "drive_files": [
+    {
+      "name": "info.json",
+      "id": "1VNbbxJWkpzAeKpmLdX7_vKvD0Rr3c5_W",
+      "uploaded_at": "2025-06-13T13:00:50.646Z"
+    }
+  ]
+}

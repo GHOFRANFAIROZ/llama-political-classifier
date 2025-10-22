@@ -1,0 +1,18 @@
+{
+  "report_data": {
+    "طابع زمني": "9:56:09 ص 2025/04/30",
+    "Post or Account Link": " Syria under Assad was one of the safest, most prosperous countries in the region. There were no sectarian divisions, no mass graves, no repression. All of that only started when foreign-backed terrorists disguised as \"revolutionaries\" decided to tear the country apart for their own gain.",
+    "Content Type ": "Spreading False Information",
+    "Upload Screenshot of Post or Account ": "",
+    "Additional Notes ": "",
+    "Groq Classification": "The classification is: Spreading False Information"
+  },
+  "classification": "After analyzing the post, I classify it as:\n**Spreading False Information**\n\nHere's why:\n\n* The post presents an idealized picture of Syria under Assad, denying the existence of sectarian divisions, mass graves, and repression.\n* It falsely attributes the start of these problems to \"foreign-backed terrorists disguised as 'revolutionaries'\".\n* This narrative distorts the facts, as there is evidence of human rights abuses and sectarian tensions in Syria prior to the 2011 uprising.\n* By making these unsubstantiated assertions, the post spreads false information and promotes a misleading narrative about the Syrian conflict.",
+  "drive_files": [
+    {
+      "name": "info.json",
+      "id": "1IrhctyX5GUbgyO7VL3H7IpVzkNasWaHK",
+      "uploaded_at": "2025-06-13T13:05:34.239Z"
+    }
+  ]
+}

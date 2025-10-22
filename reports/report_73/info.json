@@ -1,0 +1,18 @@
+{
+  "report_data": {
+    "طابع زمني": "9:55:40 ص 2025/04/30",
+    "Post or Account Link": " The Syrian revolution was never about freedom or democracy. It was a massive intelligence operation funded and directed by foreign enemies to destabilize a peaceful country. The \"protesters\" were mercenaries paid to sow chaos, and the violence was orchestrated from abroad to destroy Syria’s sovereignty.",
+    "Content Type ": "Spreading False Information",
+    "Upload Screenshot of Post or Account ": "",
+    "Additional Notes ": "",
+    "Groq Classification": "After analyzing the post, I classify it as:\n**Spreading False Information"
+  },
+  "classification": "After analyzing the post, I classify it as:\n\n**Spreading False Information**\n\nThe post makes unverified claims about the Syrian revolution being a massive intelligence operation, and the protesters being mercenaries paid to sow chaos. These statements are not supported by evidence and are distortions of documented facts.",
+  "drive_files": [
+    {
+      "name": "info.json",
+      "id": "1tAFeh0fHP6DyZkv0ZBZ9oglvlvvls1Bg",
+      "uploaded_at": "2025-06-13T13:05:09.001Z"
+    }
+  ]
+}

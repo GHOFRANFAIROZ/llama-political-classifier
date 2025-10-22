@@ -1,0 +1,11 @@
+__pycache__/
+.vscode/
+.venv/
+client_secrets.json
+credentials.json
+*.zip
+cleaned_project/
+chromedriver.exe
+*.csv
+.env
+env.list

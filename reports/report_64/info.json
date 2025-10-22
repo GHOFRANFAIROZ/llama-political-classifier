@@ -1,0 +1,18 @@
+{
+  "report_data": {
+    "طابع زمني": "11:16:27 م 2025/04/29",
+    "Post or Account Link": " Every time we talk about federalism, they say it's division. But how can we live together after all the bloodshed? Let the Kurds have their region, the Alawites theirs, and let the rest of us finally breathe. One nation is no longer realistic—we need practical separation to prevent another war.",
+    "Content Type ": "Call for Violence",
+    "Upload Screenshot of Post or Account ": "",
+    "Additional Notes ": "",
+    "Groq Classification": "After careful analysis, I classify the post as:\n**Sectarian Incitement**\n\nThe post promotes division based on sectarian/religious identity, advocating for territorial separation along sectarian lines, which is a classic characteristic of sectarian incitement. While the tone is not overtly hostile, the suggestion of separate regions for different sects (Kurds, Alawites) can be seen as promoting division and potentially fueling further conflict."
+  },
+  "classification": "After analyzing the post, I classify it as:\n\nSectarian Incitement\n\nThe post advocates for separation based on sectarian identity (Kurds, Alawites) and implies that living together is no longer possible, promoting division and segregation.",
+  "drive_files": [
+    {
+      "name": "info.json",
+      "id": "1tmgfh8mAdmwLTA52opbqHe6yotpAUklr",
+      "uploaded_at": "2025-06-13T13:03:16.562Z"
+    }
+  ]
+}

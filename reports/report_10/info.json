@@ -1,0 +1,18 @@
+{
+  "report_data": {
+    "طابع زمني": "3:28:36 م 2025/04/11",
+    "Post or Account Link": "This refugee is not from my area so he should be deported.",
+    "Content Type ": "Call for Violence",
+    "Upload Screenshot of Post or Account ": "https://drive.google.com/open?id=1BwX4EsPUnAcKlnWzXW8n6PWOd_pQgIIc",
+    "Additional Notes ": "",
+    "Groq Classification": "After analyzing the post, I classify it as:\nSectarian Incitement.\n\nReason: The phrase \"This refugee is not from my area\" implies a sectarian or regional identity, and the demand for deportation based on this criteria promotes division and exclusion."
+  },
+  "classification": "- Sectarian Incitement",
+  "drive_files": [
+    {
+      "name": "info.json",
+      "id": "1r629Qg_tLnc0A1yom0xDmw9Kkt09fM2D",
+      "uploaded_at": "2025-06-13T12:52:28.609Z"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "report_data": {
+    "طابع زمني": "2:24:06 م 2025/04/11",
+    "Post or Account Link": "That community is disgusting and dangerous. We must get rid of them.",
+    "Content Type ": "Sectarian Incitement",
+    "Upload Screenshot of Post or Account ": "https://drive.google.com/open?id=1iE3mnp5f2AuwQd478hIOftqxcvHpiaOc",
+    "Additional Notes ": "",
+    "Groq Classification": "After analyzing the post, I classify it as:\n**Call for Violence**\n\nThe post directly promotes the removal of a community, using phrasing that implies violence or punishment. This falls under the definition of a Call for Violence, as it encourages harm or remove a group of people."
+  },
+  "classification": "After analyzing the post, I classify it as:\n\n**Call for Violence**\n\nThe language used is direct and implies a collective action to \"get rid of them\", which is a clear call for violence or removal of a certain group, without specifying who or providing context. This type of language can incite harm and is similar to the examples provided in the guidelines.",
+  "drive_files": [
+    {
+      "name": "info.json",
+      "id": "1wErTE9v3u5pjbrabxNKDxN-DKzENULxi",
+      "uploaded_at": "2025-06-13T12:52:05.229Z"
+    }
+  ]
+}

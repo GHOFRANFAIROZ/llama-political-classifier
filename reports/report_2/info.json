@@ -1,0 +1,18 @@
+{
+  "report_data": {
+    "طابع زمني": "3:19:45 ص 2025/03/27",
+    "Post or Account Link": "https://www.facebook.com/share/1DnoXrKZPW/",
+    "Content Type ": "نشر معلومات كاذبة",
+    "Upload Screenshot of Post or Account ": "https://drive.google.com/open?id=16jKni0k-YVYyrV0pzO9pvy2_VYeJYJYS",
+    "Additional Notes ": "",
+    "Groq Classification": "Other"
+  },
+  "classification": "Since the provided \"post\" is just a Facebook share link without any actual content, I will classify it as:\n\n- Other",
+  "drive_files": [
+    {
+      "name": "info.json",
+      "id": "1ZF1oUZjNgBMDouZvZFUb2J6Ktn0PinH0",
+      "uploaded_at": "2025-06-13T12:51:31.999Z"
+    }
+  ]
+}

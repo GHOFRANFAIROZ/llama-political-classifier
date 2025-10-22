@@ -1,0 +1,18 @@
+{
+  "report_data": {
+    "طابع زمني": "1:29:50 م 2025/04/14",
+    "Post or Account Link": "     The so-called Syrian government is secretly working with Israel to target opposition areas.",
+    "Content Type ": "Spreading False Information",
+    "Upload Screenshot of Post or Account ": "https://drive.google.com/open?id=1HZ8ZT7qM79cnV2SOo-HIO_CL_b6nP98o",
+    "Additional Notes ": "",
+    "Groq Classification": "Spreading False Information"
+  },
+  "classification": "Spreading False Information",
+  "drive_files": [
+    {
+      "name": "info.json",
+      "id": "1ZKMhmdEhyxGH4J-hVbYifac_bCOAc4sb",
+      "uploaded_at": "2025-06-13T12:52:51.645Z"
+    }
+  ]
+}

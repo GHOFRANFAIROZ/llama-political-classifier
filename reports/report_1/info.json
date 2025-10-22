@@ -1,0 +1,18 @@
+{
+  "report_data": {
+    "طابع زمني": "3:48:02 ص 2025/03/25",
+    "Post or Account Link": "Http://fdhjhdffxx",
+    "Content Type ": "تحريض طائفي",
+    "Upload Screenshot of Post or Account ": "https://drive.google.com/open?id=1LF4mxeB3hJNwU5O01EBkOxWJpRIyyoDc",
+    "Additional Notes ": "هذا بلاغ تحريضي",
+    "Groq Classification": "Since the post contains only a URL and no text, I will classify it as:\n- Other"
+  },
+  "classification": "Since the provided post is just a URL with no political content, I would classify it as:\n\nOther",
+  "drive_files": [
+    {
+      "name": "info.json",
+      "id": "1GR4LtviQeZk_2PYE1bKQg29gzywYNnVC",
+      "uploaded_at": "2025-06-13T12:51:28.917Z"
+    }
+  ]
+}

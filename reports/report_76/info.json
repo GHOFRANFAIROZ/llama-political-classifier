@@ -1,0 +1,18 @@
+{
+  "report_data": {
+    "طابع زمني": "10:14:05 ص 2025/04/30",
+    "Post or Account Link": " The White Helmets were never humanitarian workers. They were part of a propaganda machine funded by foreign governments to fabricate war crimes and create staged rescue missions. Every video they released was scripted to paint Assad as a villain and the terrorists as heroes. None of their reports can be trusted.",
+    "Content Type ": "Spreading False Information",
+    "Upload Screenshot of Post or Account ": "",
+    "Additional Notes ": "",
+    "Groq Classification": "Spreading False Information"
+  },
+  "classification": "Spreading False Information",
+  "drive_files": [
+    {
+      "name": "info.json",
+      "id": "1R2dzd9RcHhUu5vWgZfxf7lp9Dtp2rH3M",
+      "uploaded_at": "2025-06-13T13:05:46.838Z"
+    }
+  ]
+}

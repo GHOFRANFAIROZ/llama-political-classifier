@@ -1,0 +1,18 @@
+{
+  "report_data": {
+    "طابع زمني": "10:41:03 ص 2025/04/30",
+    "Post or Account Link": " People say Assad ordered the massacres, but did anyone actually see him do it? So much of what we believe is based on media stories. Maybe we're not seeing the full picture.",
+    "Content Type ": "Spreading False Information",
+    "Upload Screenshot of Post or Account ": "",
+    "Additional Notes ": "",
+    "Groq Classification": "Spreading False Information"
+  },
+  "classification": "Based on the guidelines, I would classify this post as:\n\nSpreading False Information**\n\nThe post suggests that the media stories about Assad's role in massacres might not be trustworthy, implying that there could be a different truth without presenting any evidence to support this claim. This type of language can contribute to spreading misinformation and undermine trust in verified information.",
+  "drive_files": [
+    {
+      "name": "info.json",
+      "id": "1_Izi39umrNo9TdXSq4uYDx8r7DstkRwk",
+      "uploaded_at": "2025-06-13T13:08:58.772Z"
+    }
+  ]
+}

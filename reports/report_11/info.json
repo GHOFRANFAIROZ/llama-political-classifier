@@ -1,0 +1,18 @@
+{
+  "report_data": {
+    "طابع زمني": "3:30:26 م 2025/04/11",
+    "Post or Account Link": "The government conceals the files of detainees.",
+    "Content Type ": "Spreading False Information",
+    "Upload Screenshot of Post or Account ": "https://drive.google.com/open?id=1Fb1fTJX2IIy0ztO2V56waWH4YkfR1AWM",
+    "Additional Notes ": "",
+    "Groq Classification": "The classification for the given post is:\n\nSpreading False Information"
+  },
+  "classification": "Spreading False Information",
+  "drive_files": [
+    {
+      "name": "info.json",
+      "id": "1EJC4KwkQE2YX_t8pazMZNH5qNOm7gyJO",
+      "uploaded_at": "2025-06-13T12:52:39.908Z"
+    }
+  ]
+}

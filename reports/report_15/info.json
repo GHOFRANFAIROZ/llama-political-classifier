@@ -1,0 +1,18 @@
+{
+  "report_data": {
+    "طابع زمني": "1:46:48 م 2025/04/14",
+    "Post or Account Link": " Assad’s crimes were exaggerated by the media; he only targeted terrorists.",
+    "Content Type ": "Spreading False Information",
+    "Upload Screenshot of Post or Account ": "https://drive.google.com/open?id=1mxMbl9NEzOrznUZgDAr5uF9lx4nWuLVB",
+    "Additional Notes ": "",
+    "Groq Classification": "Spreading False Information"
+  },
+  "classification": "Spreading False Information",
+  "drive_files": [
+    {
+      "name": "info.json",
+      "id": "13J9DlBzY-8rOZdJzZPPNBrR5Dah7dgNj",
+      "uploaded_at": "2025-06-13T12:53:26.283Z"
+    }
+  ]
+}

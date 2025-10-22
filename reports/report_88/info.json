@@ -1,0 +1,18 @@
+{
+  "report_data": {
+    "طابع زمني": "10:39:50 ص 2025/04/30",
+    "Post or Account Link": " I’m not saying we should hurt them… but letting them walk free after what they did is an insult to every victim. If justice doesn’t come through the courts, maybe people will take matters into their own hands. ",
+    "Content Type ": "Spreading False Information",
+    "Upload Screenshot of Post or Account ": "",
+    "Additional Notes ": "",
+    "Groq Classification": "After analyzing the post, I classify it as:\n```\nNeutral\n```\nThe post expresses frustration with the lack of justice and implies that people might take action if the courts don't deliver. While the tone is emotional, it doesn't directly or indirectly promote violence, nor does it contain sectarian incitement or spread false information. The language is strong, but it falls under the Neutral category, which allows for frustrated expressions without hostility or manipulation."
+  },
+  "classification": "After analyzing the post, I classify it as:\n- Neutral",
+  "drive_files": [
+    {
+      "name": "info.json",
+      "id": "1IT4fQpIGBKn9u8tRZGOhjugy4fxRp4VY",
+      "uploaded_at": "2025-06-13T13:08:11.432Z"
+    }
+  ]
+}

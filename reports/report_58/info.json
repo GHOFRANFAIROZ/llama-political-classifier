@@ -1,0 +1,18 @@
+{
+  "report_data": {
+    "طابع زمني": "11:07:10 م 2025/04/29",
+    "Post or Account Link": " This country was never meant to be ruled by Sunnis again. Every time they take power, chaos follows. We need a system that protects minorities and ensures that the majoritarian rule is never allowed to return. Our safety depends on it.",
+    "Content Type ": "Sectarian Incitement",
+    "Upload Screenshot of Post or Account ": "",
+    "Additional Notes ": "",
+    "Groq Classification": "After analyzing the post, I classify it as:\n**Sectarian Incitement**\n\nThe post promotes division based on sectarian identity, advocating for a system that \"protects minorities\" (implying that Sunnis are a threat to minorities) and ensuring that \"majoritarian rule\" (i.e., Sunni majority) is not allowed to return. This language incites sectarian division and promotes a narrative of Sunni oppression, which is a classic characteristic of sectarian incitement."
+  },
+  "classification": "Sectarian Incitement",
+  "drive_files": [
+    {
+      "name": "info.json",
+      "id": "1yRq6S5OlAeozUAGJ7bbHZuX9ZR5Uctrc",
+      "uploaded_at": "2025-06-13T13:02:05.146Z"
+    }
+  ]
+}

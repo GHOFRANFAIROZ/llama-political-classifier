@@ -1,0 +1,18 @@
+{
+  "report_data": {
+    "طابع زمني": "12:06:01 م 2025/04/11",
+    "Post or Account Link": "All people from that group should be banned from this country",
+    "Content Type ": "Sectarian Incitement",
+    "Upload Screenshot of Post or Account ": "https://drive.google.com/open?id=1I8GZcE6eZrS9WVvtKbDPuFvjOf51UlGD",
+    "Additional Notes ": "Just a test",
+    "Groq Classification": "After analyzing the post, I classify it as:\n\n**Sectarian Incitement**\n\nThe post explicitly calls for the banishment of a specific group, implying that they are unwanted and should be excluded from the country. This language promotes sectarian or religious division and fosters a hostile environment. Although the post does not explicitly mention a particular sect or religion, the context implies that the group being referred to is a religious or sectarian group, which is a key characteristic of sectarian incitement."
+  },
+  "classification": "Based on the provided guidelines, I would classify the post as:\n\n**Sectarian Incitement",
+  "drive_files": [
+    {
+      "name": "info.json",
+      "id": "1BRNhgmgENy8GQnyTue0n0_MWnYPcrW4p",
+      "uploaded_at": "2025-06-13T12:51:52.306Z"
+    }
+  ]
+}

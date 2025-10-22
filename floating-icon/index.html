@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>راصد المحتوى التحريضي الذكي</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- الأيقونة العائمة -->
+  <div class="floating-icon" id="floating-icon">
+    <img src="icon.png" alt="AI Classifier Icon" />
+  </div>
+
+  <!-- النافذة المنبثقة -->
+  <div class="popup" id="popup">
+    <div class="popup-content">
+      <span class="close" id="close-popup">&times;</span>
+      <h3>🔍 أدخل رابط المنشور</h3>
+      <input type="text" id="tweet-url" placeholder="https://x.com/...">
+      <button onclick="sendTweetUrl()">تصنيف</button>
+
+      <!-- ✅ هنا تظهر النتيجة -->
+      <div id="result" class="result-box"></div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

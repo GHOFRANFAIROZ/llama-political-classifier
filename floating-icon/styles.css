@@ -1,0 +1,126 @@
+/* ================================
+   🌟 الأيقونة العائمة
+================================ */
+.floating-icon {
+  position: fixed;
+  bottom: 25px;
+  right: 25px;
+  background: linear-gradient(135deg, #a16eff, #8058ff);
+  padding: 14px;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 6px 15px rgba(128, 88, 255, 0.4);
+  transition: all 0.3s ease;
+  z-index: 999;
+}
+
+.floating-icon:hover {
+  transform: scale(1.1);
+  box-shadow: 0 8px 18px rgba(128, 88, 255, 0.6);
+}
+
+.floating-icon img {
+  width: 38px;
+  height: 38px;
+  object-fit: cover;
+}
+
+/* ================================
+   🪟 النافذة المنبثقة (Popup)
+================================ */
+.popup {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  padding: 25px 30px;
+  width: 280px;
+  z-index: 1000;
+  text-align: center;
+  animation: fadeIn 0.3s ease;
+}
+
+/* ✨ تأثير الظهور */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -45%);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+.popup h3 {
+  margin-top: 5px;
+  color: #4b2fd6;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.popup input {
+  width: 100%;
+  padding: 8px 10px;
+  margin: 10px 0;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  font-size: 13px;
+  direction: ltr;
+}
+
+button {
+  width: 100%;
+  background: linear-gradient(135deg, #9c70ff, #6a4cff);
+  color: white;
+  font-weight: bold;
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+button:hover {
+  background: linear-gradient(135deg, #8058ff, #543bff);
+  box-shadow: 0 4px 10px rgba(128, 88, 255, 0.4);
+}
+
+.close {
+  color: #555;
+  font-size: 22px;
+  font-weight: bold;
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.close:hover {
+  color: #000;
+}
+
+/* ================================
+   ✅ مربع النتيجة
+================================ */
+.result-box {
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 10px;
+  font-size: 14px;
+  text-align: center;
+  background-color: rgba(255, 255, 255, 0.6);
+  color: #333;
+  box-shadow: inset 0 0 8px rgba(128, 88, 255, 0.2);
+  min-height: 30px;
+  transition: all 0.3s ease;
+  direction: rtl;
+}

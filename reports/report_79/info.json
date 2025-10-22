@@ -1,0 +1,18 @@
+{
+  "report_data": {
+    "طابع زمني": "10:14:59 ص 2025/04/30",
+    "Post or Account Link": " All those stories about mass executions in Syrian prisons? Completely made up by enemies of the state.",
+    "Content Type ": "Spreading False Information",
+    "Upload Screenshot of Post or Account ": "",
+    "Additional Notes ": "",
+    "Groq Classification": "The classification of the given post is:\nSpreading False Information"
+  },
+  "classification": "Spreading False Information",
+  "drive_files": [
+    {
+      "name": "info.json",
+      "id": "1QC0CtRw72r4_MJv5I8RyCheRTlOIgEMB",
+      "uploaded_at": "2025-06-13T13:06:23.325Z"
+    }
+  ]
+}

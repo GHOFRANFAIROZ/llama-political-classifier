@@ -1,0 +1,18 @@
+{
+  "report_data": {
+    "طابع زمني": "6:25:46 م 2025/04/29",
+    "Post or Account Link": " The streets will not be safe for those who betrayed us. They think they can walk freely after what they did? We must show them that treason has a cost. Their smiles will be wiped away, their arrogance crushed. Justice won't be served in court — it will be served on the streets.",
+    "Content Type ": "Call for Violence",
+    "Upload Screenshot of Post or Account ": "",
+    "Additional Notes ": "",
+    "Groq Classification": "Based on the guidelines, I classify the post as:\n\nCall for Violence\n\nThe language used is direct, promoting revenge and collective punishment, implying harm to individuals or groups. Phrases like \"justice won't be served in court — it will be served on the streets\" and \"treason has a cost\" suggest a call to action, which aligns with the definition of a Call for Violence."
+  },
+  "classification": "After analyzing the post, I classify it as:\n\n**Call for Violence**\n\nThe post directly promotes revenge and punishment, using phrases such as \"treason has a cost\", \"their smiles will be wiped away\", and \"justice won't be served in court — it will be served on the streets\". These phrases imply that violence or punishment should be inflicted on specific individuals or groups, which meets the criteria for a Call for Violence.",
+  "drive_files": [
+    {
+      "name": "info.json",
+      "id": "1lPHl4w_r4KbHVNTEocFPdlxUUUNd3Keo",
+      "uploaded_at": "2025-06-13T12:58:58.377Z"
+    }
+  ]
+}

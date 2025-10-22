@@ -1,0 +1,18 @@
+{
+  "report_data": {
+    "طابع زمني": "6:34:12 م 2025/04/29",
+    "Post or Account Link": " They used our hopes, our dreams, and sold them for cheap. Now they expect forgiveness? No. They will taste the bitterness they planted. One by one, they will fall.",
+    "Content Type ": "Call for Violence",
+    "Upload Screenshot of Post or Account ": "",
+    "Additional Notes ": "",
+    "Groq Classification": "Classification: Call for Violence"
+  },
+  "classification": "After analyzing the post, I classify it as:\n**Call for Violence**\n\nThe post implies revenge and harm towards individuals who are perceived to have betrayed the speaker's hopes and dreams. The phrase \"they will taste the bitterness they planted\" is a metaphor for retribution, and \"one by one, they will fall\" is a clear implication of collective revenge, which falls under the definition of a Call for Violence.",
+  "drive_files": [
+    {
+      "name": "info.json",
+      "id": "1cNueKjqs-yYLB8SoTeSWnz_2E6mu4UCD",
+      "uploaded_at": "2025-06-13T13:01:01.963Z"
+    }
+  ]
+}
