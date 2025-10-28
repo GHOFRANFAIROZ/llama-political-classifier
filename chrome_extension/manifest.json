@@ -11,6 +11,7 @@
   ],
   "host_permissions": [
     "https://my-ai-classifier.onrender.com/*",
+    "https://antihatellamaproject-production.up.railway.app/*",
     "https://*.x.com/*",
     "https://*.twitter.com/*",
     "https://*.facebook.com/*",
@@ -36,6 +37,16 @@
         "content.js"
       ],
       "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "floating-icon/*"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
     }
   ]
 }

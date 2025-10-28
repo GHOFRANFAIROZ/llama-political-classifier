@@ -38,8 +38,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # نسخ باقي المشروع
 COPY . .
 
-# تعيين متغير البيئة PORT
+# تعيين متغير البيئة PORT (هذا السطر ليس ضروريًا لأن Render توفره، لكن لا يضر)
 ENV PORT 8080
 
 # تشغيل التطبيق
-CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "1", "--threads", "8", "--timeout", "0", "app:app"]
+# ⬇️ *** هذا هو السطر الذي تم تعديله *** ⬇️
+CMD ["gunicorn", "--bind", "0.0.0.0:$PORT", "--workers", "1", "--threads", "8", "--timeout", "0", "app:app"]

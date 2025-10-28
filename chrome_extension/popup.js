@@ -1,13 +1,12 @@
-// 🧠 قائمة السيرفرات (Primary + Backups)
-const servers = [
-  "https://my-ai-classifier.onrender.com/classify",              // Render (الرئيسي)
-  "https://antihatellamaproject-production.up.railway.app/classify" // Railway (الاحتياطي)
+// 🧠 قائمة السيرفرات (Render + Railway)
+const SERVERS = [
+  "https://my-ai-classifier.onrender.com/classify",
+  "https://antihatellamaproject-production.up.railway.app/classify"
 ];
 
-// ⚙️ دالة لتجربة السيرفرات بالتتابع
-async function classifyPost(postUrl) {
-  for (let i = 0; i < servers.length; i++) {
-    const server = servers[i];
+// ⚙️ دالة للتصنيف مع نظام fallback التلقائي
+async function classifyWithFallback(postUrl) {
+  for (const server of SERVERS) {
     try {
       console.log(`🔗 المحاولة مع السيرفر: ${server}`);
       const response = await fetch(server, {
@@ -32,7 +31,7 @@ async function classifyPost(postUrl) {
   throw new Error("جميع السيرفرات غير متاحة حالياً.");
 }
 
-// 🎛️ إعداد الواجهة
+// 🎛️ إعداد الواجهة التفاعلية للـ popup
 document.addEventListener("DOMContentLoaded", function () {
   const classifyButton = document.getElementById("classify-button");
   const postUrlInput = document.getElementById("post-url");
@@ -49,7 +48,7 @@ document.addEventListener("DOMContentLoaded", function () {
     resultDiv.style.color = "black";
 
     try {
-      const result = await classifyPost(postUrl);
+      const result = await classifyWithFallback(postUrl);
       resultDiv.textContent = `✅ التصنيف: ${result.label}`;
       resultDiv.style.color = "green";
       console.log(`📦 من السيرفر: ${result.server}`);
