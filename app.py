@@ -11,7 +11,20 @@ from flask_cors import CORS
 
 # --- Flask setup ---
 app = Flask(__name__)
-CORS(app)
+
+# --- CORS Configuration ---
+# تم استبدال CORS(app) بالقواعد المحددة للسماح للإضافة بالاتصال
+# الـ ID الخاص بالإضافة: iicoeickdfoiphlcpokpegegmfiiejdd
+origins = [
+    "https://x.com",
+    "https://twitter.com",
+    "https://web.facebook.com",
+    "https://www.facebook.com",
+    "chrome-extension://iicoeickdfoiphlcpokpegegmfiiejdd"
+]
+# تطبيق قواعد CORS فقط على المسار /classify
+CORS(app, resources={r"/classify": {"origins": origins}})
+
 
 # --- Load environment variables ---
 load_dotenv()
