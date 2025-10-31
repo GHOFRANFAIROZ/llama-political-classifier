@@ -13,14 +13,14 @@ from flask_cors import CORS
 app = Flask(__name__)
 
 # --- CORS Configuration ---
-# تم استبدال CORS(app) بالقواعد المحددة للسماح للإضافة بالاتصال
-# الـ ID الخاص بالإضافة: iicoeickdfoiphlcpokpegegmfiiejdd
+# تمت إضافة الـ ID الخاص بنسخة المتجر الرسمية إلى القائمة
 origins = [
     "https://x.com",
     "https://twitter.com",
     "https://web.facebook.com",
     "https://www.facebook.com",
-    "chrome-extension://iicoeickdfoiphlcpokpegegmfiiejdd"
+    "chrome-extension://iicoeickdfoiphlcpokpegegmfiiejdd", # ID النسخة المحلية (للتطوير)
+    "chrome-extension://fkehkojcpfhajgjflccaodfegenejipm"  # ID النسخة العالمية (المتجر)
 ]
 # تطبيق قواعد CORS فقط على المسار /classify
 CORS(app, resources={r"/classify": {"origins": origins}})
