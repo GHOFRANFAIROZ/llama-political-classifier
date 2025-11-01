@@ -22,8 +22,8 @@ origins = [
     "chrome-extension://iicoeickdfoiphlcpokpegegmfiiejdd", # ID النسخة المحلية (للتطوير)
     "chrome-extension://fkehkojcpfhajgjflccaodfegenejipm"  # ID النسخة العالمية (المتجر)
 ]
-# تطبيق قواعد CORS فقط على المسار /classify
-CORS(app, resources={r"/classify": {"origins": origins}})
+# 🛑 تم تغيير المسار إلى /classify_v2 لكسر الكاش
+CORS(app, resources={r"/classify_v2": {"origins": origins}})
 
 
 # --- Load environment variables ---
@@ -189,8 +189,8 @@ def healthz():
     return jsonify({"status": "ok", "path": "/healthz"}), 200
 
 
-# --- CLASSIFY ENDPOINT ---
-@app.route("/classify", methods=["POST"])
+# --- CLASSIFY ENDPOINT (🛑 تم تغيير المسار هنا) ---
+@app.route("/classify_v2", methods=["POST"])
 def classify():
     try:
         data = request.get_json(silent=True) or {}
@@ -206,7 +206,8 @@ def classify():
         label = response.choices[0].message.content.strip()
 
         ws = get_sheet()
-        ws.append_row([datetime.now().strftime("%Y-%m-%d %H:%M:%S"), raw_input, label, "extension"])
+        # 🛑 تم تغيير المصدر هنا لتتبع الإصدار الجديد
+        ws.append_row([datetime.now().strftime("%Y-%m-%d %H:%M:%S"), raw_input, label, "extension_v2"])
 
         return jsonify({"label": label}), 200
     except Exception as e:
@@ -218,9 +219,9 @@ def classify():
 @app.route("/", methods=["GET"])
 def home():
     return """
-    <h2>🚀 Flask server is running successfully!</h2>
+    <h2>🚀 Flask server is running successfully! (v2)</h2>
     <p>Health check available at: <a href='/healthz'>/healthz</a></p>
-    <p>Classification endpoint: <code>/classify</code></p>
+    <p>Classification endpoint: <code>/classify_v2</code></p>
     """, 200
 
 
