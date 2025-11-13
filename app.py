@@ -12,27 +12,9 @@ from flask_cors import CORS
 # --- إعداد Flask ---
 app = Flask(__name__)
 
-# --- إعداد CORS (محسن وشامل) ---
-# 💡 التعديل الجديد: استخدام أنماط (Regex) لتغطية جميع الاحتمالات
-CORS(app, resources={
-    r"/classify_v2": {
-        "origins": [
-            "https://twitter.com",
-            "https://www.twitter.com",
-            "https://mobile.twitter.com",
-            "https://x.com",
-            "https://www.x.com",
-            "https://facebook.com",
-            "https://www.facebook.com",
-            "https://web.facebook.com",
-            "https://m.facebook.com",
-            # السماح لجميع إضافات كروم (للتبسيط وضمان العمل محلياً وعالمياً)
-            "chrome-extension://*"
-        ],
-        "methods": ["POST", "OPTIONS"],  # السماح بطلبات POST و OPTIONS (مهم لـ preflight)
-        "allow_headers": ["Content-Type"] # السماح برأس Content-Type الضروري لـ JSON
-    }
-})
+# --- إعداد CORS (الحل الجذري: السماح للجميع) ---
+# 💡 التعديل الجديد: استبدال القائمة الطويلة بهذا السطر للسماح للجميع
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 # --- تحميل متغيرات البيئة ---
 load_dotenv()
