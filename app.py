@@ -12,8 +12,7 @@ from flask_cors import CORS
 # --- إعداد Flask ---
 app = Flask(__name__)
 
-# --- إعداد CORS (الحل الجذري: السماح للجميع) ---
-# 💡 التعديل الجديد: استبدال القائمة الطويلة بهذا السطر للسماح للجميع
+# --- إعداد CORS (السماح للجميع) ---
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 # --- تحميل متغيرات البيئة ---
@@ -30,7 +29,7 @@ client = OpenAI(
 )
 DEFAULT_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
 
-# --- إعداد Google Sheets (مع تخزين مؤقت للاتصال) ---
+# --- إعداد Google Sheets ---
 _sheet_cache = None
 def get_sheet():
     global _sheet_cache
@@ -38,26 +37,39 @@ def get_sheet():
         return _sheet_cache
     try:
         scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
-        creds_json = os.getenv("GOOGLE_SHEETS_CREDENTIALS")
+        creds_json = os.getenv("GOOGLE_SHEETS_CREDENTIALS") or os.getenv("GOOGLE_CREDENTIALS_JSON")
+        
         if not creds_json:
-             raise ValueError("GOOGLE_SHEETS_CREDENTIALS missing in env variables")
+             raise ValueError("GOOGLE_CREDENTIALS_JSON missing")
         
         creds_dict = json.loads(creds_json)
         creds = service_account.Credentials.from_service_account_info(creds_dict, scopes=scope)
         sheet_client = gspread.authorize(creds)
         
+        # الاتصال بالشيت
+        sheet_url = os.getenv("SHEET_URL")
         spreadsheet_id = os.getenv("SPREADSHEET_ID")
-        if not spreadsheet_id:
-             raise ValueError("SPREADSHEET_ID missing in env variables")
+        
+        if sheet_url:
+            spreadsheet = sheet_client.open_by_url(sheet_url)
+        elif spreadsheet_id:
+            spreadsheet = sheet_client.open_by_key(spreadsheet_id)
+        else:
+             raise ValueError("Missing SHEET_URL or SPREADSHEET_ID")
 
-        spreadsheet = sheet_client.open_by_key(spreadsheet_id)
-        tab_name = os.getenv("SHEET_TAB_NAME")
-        _sheet_cache = spreadsheet.worksheet(tab_name) if tab_name else spreadsheet.sheet1
-        return _sheet_cache
+        # 👇 التوجيه لورقة Extension Reports
+        return spreadsheet.worksheet("Extension Reports")
+        
     except Exception as e:
         logger.error(f"Failed to connect to Google Sheets: {e}")
-        raise e # إعادة رمي الخطأ ليتم التعامل معه في دالة التصنيف
+        raise e
 
+# دالة تنظيف النص
+def clean_text(text):
+    if not text: return ""
+    return text.replace('\n', ' ').strip()[:1000]
+
+# 👇 البرومبت الكامل (الخاص بك) مع إضافة تعليمات JSON في النهاية
 def build_prompt(text):
     return f'''
 You are an advanced AI content classification agent working on political posts in the Syrian context.
@@ -175,57 +187,93 @@ Use when:
 - The post is unrelated to politics/violence.
 - Or too vague to classify with confidence.
 
+---
+⚠️ IMPORTANT OUTPUT FORMAT (JSON ONLY):
+You must respond with a strictly valid JSON object. Do not include any other text.
+The JSON must follow this exact structure:
+{{
+  "label": "WRITE_THE_EXACT_CATEGORY_NAME_HERE",
+  "reason": "Write a short sentence explaining why you chose this label."
+}}
+
+POST TO ANALYZE:
 {text}
 '''
 
-# --- فحوصات الصحة (Health Checks) ---
+# --- فحوصات الصحة ---
 @app.route("/health", methods=["GET"])
 def health():
-    return jsonify({"status": "ok", "path": "/health"}), 200
+    return jsonify({"status": "ok"}), 200
 
 @app.route("/healthz", methods=["GET"])
 def healthz():
-    return jsonify({"status": "ok", "path": "/healthz"}), 200
+    return jsonify({"status": "ok"}), 200
 
-# --- نقطة نهاية التصنيف (Classify Endpoint v2) ---
-@app.route("/classify_v2", methods=["POST", "OPTIONS"]) # إضافة OPTIONS صراحةً
+# --- نقطة نهاية التصنيف ---
+@app.route("/classify_v2", methods=["POST", "OPTIONS"])
 def classify():
-    # التعامل مع طلبات OPTIONS (preflight request)
     if request.method == "OPTIONS":
         return _build_cors_preflight_response()
 
     try:
         data = request.get_json(silent=True) or {}
-        raw_input = (data.get("text") or data.get("url") or "").strip()
-
+        
+        # استخراج البيانات
+        text_to_analyze = data.get("text", "")
+        url_link = data.get("url", "")
+        
+        raw_input = text_to_analyze if text_to_analyze else url_link
+        
         if not raw_input:
-            logger.warning("Received empty input for classification")
             return jsonify({"error": "Empty input"}), 400
 
-        logger.info(f"Received classification request for input length: {len(raw_input)}")
+        logger.info(f"Analyzing: {raw_input[:50]}...")
 
-        # 1. الاتصال بـ LLM (Groq)
+        # 1. الاتصال بـ Groq (مع إجبار JSON)
         prompt = build_prompt(raw_input)
         response = client.chat.completions.create(
             model=DEFAULT_MODEL,
-            messages=[{"role": "user", "content": prompt}]
+            messages=[{"role": "user", "content": prompt}],
+            response_format={"type": "json_object"} # 👈 مهم جداً ليعمل الكود
         )
-        label = response.choices[0].message.content.strip()
-        logger.info(f"LLM classification result: {label}")
+        
+        # 2. تحليل الرد
+        ai_content = response.choices[0].message.content
+        ai_data = json.loads(ai_content)
+        
+        label = ai_data.get("label", "Other")
+        reason = ai_data.get("reason", "No reason provided")
+        
+        logger.info(f"Result: {label} | Reason: {reason}")
 
-        # 2. محاولة التخزين في Google Sheets (اختياري، لا يجب أن يوقف التصنيف)
+        # 3. التخزين في Google Sheets (ترتيب الأعمدة حسب طلبك)
         try:
             ws = get_sheet()
-            ws.append_row([datetime.now().strftime("%Y-%m-%d %H:%M:%S"), raw_input, label, "extension_v2_floating_icon"])
-            logger.info("Successfully logged to Google Sheets")
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            
+            # 👇 الترتيب: A:Timestamp, B:URL, C:Text, D:Author, E:PostTime, F:Label, G:Source, H:Reason
+            ws.append_row([
+                timestamp,               # A
+                url_link,                # B
+                clean_text(text_to_analyze), # C
+                "",                      # D (Author - سنضيفه لاحقاً)
+                "",                      # E (PostTime - سنضيفه لاحقاً)
+                label,                   # F
+                "extension",             # G
+                reason                   # H (الشرح)
+            ])
+            logger.info("✅ Logged to Sheets")
         except Exception as sheet_error:
-            logger.error(f"Google Sheets logging failed (non-critical): {sheet_error}")
-            # نستمر ولا نعيد خطأ للمستخدم لأن التصنيف نجح
+            logger.error(f"Sheets logging failed: {sheet_error}")
 
-        return jsonify({"label": label}), 200
+        return jsonify({
+            "label": label,
+            "reason": reason,
+            "success": True
+        }), 200
 
     except Exception as e:
-        logger.error(f"Critical classification failure: {e}", exc_info=True)
+        logger.error(f"Critical Error: {e}", exc_info=True)
         return jsonify({"error": str(e)}), 500
 
 def _build_cors_preflight_response():
@@ -238,13 +286,8 @@ def _build_cors_preflight_response():
 # --- الصفحة الرئيسية ---
 @app.route("/", methods=["GET"])
 def home():
-    return """
-    <h2>🚀 Flask server is running successfully! (v2 with Enhanced CORS)</h2>
-    <p>Health check available at: <a href='/healthz'>/healthz</a></p>
-    <p>Classification endpoint: <code>/classify_v2</code></p>
-    """, 200
+    return "My AI Classifier V2 is Running! (Targeting: Extension Reports)", 200
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8080))
-    print(f"✅ Running on port {port}")
+    port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
