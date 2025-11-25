@@ -1,5 +1,6 @@
 Flask
 gunicorn
+flask-cors
 openai
 gspread
 google-auth
@@ -8,17 +9,11 @@ selenium
 webdriver-manager
 requests
 python-dotenv
-openai
-flask
-gspread
 oauth2client
 pydrive
-python-dotenv
-requests
 beautifulsoup4
 transformers
 torch
 pandas
 streamlit
 certifi
-selenium
