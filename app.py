@@ -11,18 +11,16 @@ from flask_cors import CORS
 
 # --- إعداد Flask ---
 app = Flask(__name__)
-
-# --- إعداد CORS (السماح للجميع) ---
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 # --- تحميل متغيرات البيئة ---
 load_dotenv()
 
-# --- إعداد التسجيل (Logs) ---
+# --- إعداد التسجيل ---
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# --- عميل Groq API ---
+# --- إعداد Groq ---
 client = OpenAI(
     api_key=os.getenv("GROQ_API_KEY"),
     base_url="https://api.groq.com/openai/v1"
@@ -46,7 +44,6 @@ def get_sheet():
         creds = service_account.Credentials.from_service_account_info(creds_dict, scopes=scope)
         sheet_client = gspread.authorize(creds)
         
-        # الاتصال بالشيت
         sheet_url = os.getenv("SHEET_URL")
         spreadsheet_id = os.getenv("SPREADSHEET_ID")
         
@@ -57,19 +54,16 @@ def get_sheet():
         else:
              raise ValueError("Missing SHEET_URL or SPREADSHEET_ID")
 
-        # 👇 التوجيه لورقة Extension Reports
         return spreadsheet.worksheet("Extension Reports")
         
     except Exception as e:
         logger.error(f"Failed to connect to Google Sheets: {e}")
         raise e
 
-# دالة تنظيف النص
 def clean_text(text):
     if not text: return ""
     return text.replace('\n', ' ').strip()[:1000]
 
-# 👇 البرومبت الكامل (الخاص بك) مع إضافة تعليمات JSON في النهاية
 def build_prompt(text):
     return f'''
 You are an advanced AI content classification agent working on political posts in the Syrian context.
@@ -222,19 +216,23 @@ def classify():
         text_to_analyze = data.get("text", "")
         url_link = data.get("url", "")
         
+        # 👇👇👇 التعديل الجديد: استقبال الكاتب والوقت
+        author = data.get("author", "Unknown")
+        post_time = data.get("post_time", "")
+        
         raw_input = text_to_analyze if text_to_analyze else url_link
         
         if not raw_input:
             return jsonify({"error": "Empty input"}), 400
 
-        logger.info(f"Analyzing: {raw_input[:50]}...")
+        logger.info(f"Analyzing post by {author}: {raw_input[:50]}...")
 
-        # 1. الاتصال بـ Groq (مع إجبار JSON)
+        # 1. الاتصال بـ Groq
         prompt = build_prompt(raw_input)
         response = client.chat.completions.create(
             model=DEFAULT_MODEL,
             messages=[{"role": "user", "content": prompt}],
-            response_format={"type": "json_object"} # 👈 مهم جداً ليعمل الكود
+            response_format={"type": "json_object"}
         )
         
         # 2. تحليل الرد
@@ -246,21 +244,21 @@ def classify():
         
         logger.info(f"Result: {label} | Reason: {reason}")
 
-        # 3. التخزين في Google Sheets (ترتيب الأعمدة حسب طلبك)
+        # 3. التخزين في Google Sheets
         try:
             ws = get_sheet()
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             
-            # 👇 الترتيب: A:Timestamp, B:URL, C:Text, D:Author, E:PostTime, F:Label, G:Source, H:Reason
+            # 👇👇👇 التعديل الجوهري: ملء الأعمدة D و E
             ws.append_row([
                 timestamp,               # A
                 url_link,                # B
                 clean_text(text_to_analyze), # C
-                "",                      # D (Author - سنضيفه لاحقاً)
-                "",                      # E (PostTime - سنضيفه لاحقاً)
+                author,                  # D (تم تفعيله)
+                post_time,               # E (تم تفعيله)
                 label,                   # F
                 "extension",             # G
-                reason                   # H (الشرح)
+                reason                   # H
             ])
             logger.info("✅ Logged to Sheets")
         except Exception as sheet_error:
