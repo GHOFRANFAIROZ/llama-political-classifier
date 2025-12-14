@@ -27,44 +27,92 @@ client = OpenAI(
 )
 DEFAULT_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
 
-# --- إعداد Google Sheets ---
-_sheet_cache = None
-def get_sheet():
-    global _sheet_cache
-    if _sheet_cache:
-        return _sheet_cache
-    try:
-        scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
-        creds_json = os.getenv("GOOGLE_SHEETS_CREDENTIALS") or os.getenv("GOOGLE_CREDENTIALS_JSON")
-        
-        if not creds_json:
-             raise ValueError("GOOGLE_CREDENTIALS_JSON missing")
-        
-        creds_dict = json.loads(creds_json)
-        creds = service_account.Credentials.from_service_account_info(creds_dict, scopes=scope)
-        sheet_client = gspread.authorize(creds)
-        
-        sheet_url = os.getenv("SHEET_URL")
-        spreadsheet_id = os.getenv("SPREADSHEET_ID")
-        
-        if sheet_url:
-            spreadsheet = sheet_client.open_by_url(sheet_url)
-        elif spreadsheet_id:
-            spreadsheet = sheet_client.open_by_key(spreadsheet_id)
-        else:
-             raise ValueError("Missing SHEET_URL or SPREADSHEET_ID")
+# --- أسماء الأوراق ---
+EXTENSION_SHEET_NAME = os.getenv("EXTENSION_SHEET_NAME", "Extension Reports")
+MANUAL_SHEET_NAME = os.getenv("MANUAL_SHEET_NAME", "Manual Links")
 
-        return spreadsheet.worksheet("Extension Reports")
-        
-    except Exception as e:
-        logger.error(f"Failed to connect to Google Sheets: {e}")
-        raise e
+# --- إعداد Google Sheets (Caches) ---
+_spreadsheet_cache = None
+_worksheet_cache = {}
+
+def _get_spreadsheet():
+    global _spreadsheet_cache
+
+    if _spreadsheet_cache:
+        return _spreadsheet_cache
+
+    scope = [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive"
+    ]
+
+    # يدعم الاسمين لمرونة أكبر
+    creds_json = os.getenv("GOOGLE_SHEETS_CREDENTIALS") or os.getenv("GOOGLE_CREDENTIALS_JSON")
+    if not creds_json:
+        raise ValueError("GOOGLE_CREDENTIALS_JSON missing")
+
+    creds_dict = json.loads(creds_json)
+    creds = service_account.Credentials.from_service_account_info(creds_dict, scopes=scope)
+    sheet_client = gspread.authorize(creds)
+
+    sheet_url = os.getenv("SHEET_URL")
+    spreadsheet_id = os.getenv("SPREADSHEET_ID")
+
+    if sheet_url:
+        spreadsheet = sheet_client.open_by_url(sheet_url)
+    elif spreadsheet_id:
+        spreadsheet = sheet_client.open_by_key(spreadsheet_id)
+    else:
+        raise ValueError("Missing SHEET_URL or SPREADSHEET_ID")
+
+    _spreadsheet_cache = spreadsheet
+    return spreadsheet
+
+
+def _ensure_worksheet(spreadsheet, title: str, rows: int = 2000, cols: int = 20):
+    """
+    يرجع Worksheet موجودة.
+    إذا ما كانت موجودة، ينشئها تلقائيًا.
+    """
+    global _worksheet_cache
+
+    if title in _worksheet_cache:
+        return _worksheet_cache[title]
+
+    try:
+        ws = spreadsheet.worksheet(title)
+        _worksheet_cache[title] = ws
+        return ws
+    except Exception:
+        logger.info(f"🟣 Worksheet '{title}' not found. Creating it...")
+        ws = spreadsheet.add_worksheet(title=title, rows=str(rows), cols=str(cols))
+        _worksheet_cache[title] = ws
+        return ws
+
+
+def get_target_worksheet(mode: str, source: str):
+    """
+    قواعد التخزين:
+    - popup اليدوي (mode == 'popup') -> Manual Links
+    - غير ذلك (روبوت X وغيره) -> Extension Reports
+    """
+    spreadsheet = _get_spreadsheet()
+
+    if (mode or "").strip().lower() == "popup":
+        return _ensure_worksheet(spreadsheet, MANUAL_SHEET_NAME)
+
+    # الافتراضي: extension / الروبوت
+    return _ensure_worksheet(spreadsheet, EXTENSION_SHEET_NAME)
+
 
 def clean_text(text):
-    if not text: return ""
-    return text.replace('\n', ' ').strip()[:1000]
+    if not text:
+        return ""
+    return text.replace("\n", " ").strip()[:1000]
 
-def build_prompt(text):
+
+# ✅ لا نختصر ولا نعدل البرومبت أبداً (كما طلبتي)
+def build_prompt(text: str) -> str:
     return f'''
 You are an advanced AI content classification agent working on political posts in the Syrian context.
 
@@ -194,85 +242,6 @@ POST TO ANALYZE:
 {text}
 '''
 
-# --- فحوصات الصحة ---
-@app.route("/health", methods=["GET"])
-def health():
-    return jsonify({"status": "ok"}), 200
-
-@app.route("/healthz", methods=["GET"])
-def healthz():
-    return jsonify({"status": "ok"}), 200
-
-# --- نقطة نهاية التصنيف ---
-@app.route("/classify_v2", methods=["POST", "OPTIONS"])
-def classify():
-    if request.method == "OPTIONS":
-        return _build_cors_preflight_response()
-
-    try:
-        data = request.get_json(silent=True) or {}
-        
-        # استخراج البيانات
-        text_to_analyze = data.get("text", "")
-        url_link = data.get("url", "")
-        
-        # 👇👇👇 التعديل الجديد: استقبال الكاتب والوقت
-        author = data.get("author", "Unknown")
-        post_time = data.get("post_time", "")
-        
-        raw_input = text_to_analyze if text_to_analyze else url_link
-        
-        if not raw_input:
-            return jsonify({"error": "Empty input"}), 400
-
-        logger.info(f"Analyzing post by {author}: {raw_input[:50]}...")
-
-        # 1. الاتصال بـ Groq
-        prompt = build_prompt(raw_input)
-        response = client.chat.completions.create(
-            model=DEFAULT_MODEL,
-            messages=[{"role": "user", "content": prompt}],
-            response_format={"type": "json_object"}
-        )
-        
-        # 2. تحليل الرد
-        ai_content = response.choices[0].message.content
-        ai_data = json.loads(ai_content)
-        
-        label = ai_data.get("label", "Other")
-        reason = ai_data.get("reason", "No reason provided")
-        
-        logger.info(f"Result: {label} | Reason: {reason}")
-
-        # 3. التخزين في Google Sheets
-        try:
-            ws = get_sheet()
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            
-            # 👇👇👇 التعديل الجوهري: ملء الأعمدة D و E
-            ws.append_row([
-                timestamp,               # A
-                url_link,                # B
-                clean_text(text_to_analyze), # C
-                author,                  # D (تم تفعيله)
-                post_time,               # E (تم تفعيله)
-                label,                   # F
-                "extension",             # G
-                reason                   # H
-            ])
-            logger.info("✅ Logged to Sheets")
-        except Exception as sheet_error:
-            logger.error(f"Sheets logging failed: {sheet_error}")
-
-        return jsonify({
-            "label": label,
-            "reason": reason,
-            "success": True
-        }), 200
-
-    except Exception as e:
-        logger.error(f"Critical Error: {e}", exc_info=True)
-        return jsonify({"error": str(e)}), 500
 
 def _build_cors_preflight_response():
     response = jsonify({"status": "cors_ok"})
@@ -281,10 +250,125 @@ def _build_cors_preflight_response():
     response.headers.add("Access-Control-Allow-Methods", "POST, OPTIONS")
     return response, 200
 
-# --- الصفحة الرئيسية ---
+
+# --- فحوصات الصحة ---
+@app.route("/health", methods=["GET"])
+def health():
+    return jsonify({"status": "ok"}), 200
+
+
+@app.route("/healthz", methods=["GET"])
+def healthz():
+    return jsonify({"status": "ok"}), 200
+
+
+def is_duplicate(ws, url: str, check_last: int = 50) -> bool:
+    """
+    Dedupe بسيط: نفحص آخر N صفوف من عمود الرابط (B).
+    """
+    if not url:
+        return False
+
+    try:
+        col_values = ws.col_values(2)  # عمود B
+        last_rows = col_values[-check_last:] if len(col_values) > check_last else col_values
+        return url in last_rows
+    except Exception as e:
+        logger.warning(f"Dedup check failed: {e}")
+        return False
+
+
+@app.route("/classify_v2", methods=["POST", "OPTIONS"])
+def classify():
+    if request.method == "OPTIONS":
+        return _build_cors_preflight_response()
+
+    try:
+        data = request.get_json(silent=True) or {}
+
+        mode = (data.get("mode", "") or "").strip()          # "popup" أو غيره
+        source = (data.get("source", "extension") or "").strip()
+
+        text_to_analyze = data.get("text", "") or ""
+        url_link = data.get("url", "") or ""
+        author = data.get("author", "Unknown") or "Unknown"
+        post_time = data.get("post_time", "") or ""
+
+        raw_input = text_to_analyze if text_to_analyze else url_link
+        if not raw_input:
+            return jsonify({"error": "Empty input"}), 400
+
+        logger.info(f"Analyzing ({mode}/{source}) by {author}: {raw_input[:80]}...")
+
+        # 1) Groq call
+        prompt = build_prompt(raw_input)
+        response = client.chat.completions.create(
+            model=DEFAULT_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            response_format={"type": "json_object"}
+        )
+
+        # 2) Parse response
+        ai_content = response.choices[0].message.content
+        ai_data = json.loads(ai_content)
+
+        label = ai_data.get("label", "Other")
+        reason = ai_data.get("reason", "No reason provided")
+
+        logger.info(f"Result: {label} | Reason: {reason}")
+
+        # 3) Log to Google Sheets (حسب المصدر)
+        try:
+            ws = get_target_worksheet(mode=mode, source=source)
+
+            # ✅ Dedupe فقط على Extension Reports (روبوت X)
+            if ws.title == EXTENSION_SHEET_NAME and url_link:
+                if is_duplicate(ws, url_link, check_last=50):
+                    logger.info("🟡 Duplicate URL detected in Extension Reports. Skipping append.")
+                    return jsonify({
+                        "label": label,
+                        "reason": reason,
+                        "success": True,
+                        "deduped": True,
+                        "sheet": ws.title
+                    }), 200
+
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+            # نفس الأعمدة اللي عندك (نتركها ثابتة)
+            ws.append_row([
+                timestamp,                   # A Timestamp
+                url_link,                    # B URL
+                clean_text(text_to_analyze), # C Text
+                author,                      # D Author
+                post_time,                   # E Post Time
+                label,                       # F Label
+                source,                      # G Source
+                reason,                      # H Reason
+                ""                           # I media_urls placeholder
+            ])
+
+            logger.info(f"✅ Logged to Sheets -> {ws.title}")
+
+        except Exception as sheet_error:
+            logger.error(f"Sheets logging failed: {sheet_error}")
+
+        return jsonify({
+            "label": label,
+            "reason": reason,
+            "success": True,
+            "sheet": (MANUAL_SHEET_NAME if mode.lower() == "popup" else EXTENSION_SHEET_NAME)
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Critical Error: {e}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/", methods=["GET"])
 def home():
-    return "My AI Classifier V2 is Running! (Targeting: Extension Reports)", 200
+    return "My AI Classifier V2 is Running!", 200
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
