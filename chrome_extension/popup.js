@@ -1,61 +1,72 @@
-// 🧠 قائمة السيرفرات (Render + Railway)
-const SERVERS = [
-  "https://my-ai-classifier.onrender.com/classify",
-  "https://antihatellamaproject-production.up.railway.app/classify"
-];
+document.addEventListener("DOMContentLoaded", () => {
+  const btn = document.getElementById("btn");
+  const fillBtn = document.getElementById("fillBtn");
+  const postUrl = document.getElementById("postUrl"); // textarea واحدة
+  const result = document.getElementById("result");
 
-// ⚙️ دالة للتصنيف مع نظام fallback التلقائي
-async function classifyWithFallback(postUrl) {
-  for (const server of SERVERS) {
+  function setStatus(msg, ok = true) {
+    result.textContent = msg;
+    result.classList.remove("ok", "bad");
+    result.classList.add(ok ? "ok" : "bad");
+  }
+
+  function detectSource(url) {
     try {
-      console.log(`🔗 المحاولة مع السيرفر: ${server}`);
-      const response = await fetch(server, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: postUrl })
-      });
-
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const data = await response.json();
-
-      if (data.label) {
-        console.log(`✅ التصنيف من ${server}: ${data.label}`);
-        return { label: data.label, server };
-      } else if (data.error) {
-        throw new Error(data.error);
-      }
-    } catch (err) {
-      console.warn(`⚠️ السيرفر ${server} فشل (${err.message})`);
+      const host = new URL(url).hostname.toLowerCase();
+      if (host.includes("x.com") || host.includes("twitter.com")) return "x";
+      if (host.includes("facebook.com") || host.includes("fb.com")) return "facebook";
+      if (host.includes("instagram.com")) return "instagram";
+      if (host.includes("tiktok.com")) return "tiktok";
+      if (host.includes("youtube.com") || host.includes("youtu.be")) return "youtube";
+      return "web";
+    } catch {
+      return "web";
     }
   }
-  throw new Error("جميع السيرفرات غير متاحة حالياً.");
-}
 
-// 🎛️ إعداد الواجهة التفاعلية للـ popup
-document.addEventListener("DOMContentLoaded", function () {
-  const classifyButton = document.getElementById("classify-button");
-  const postUrlInput = document.getElementById("post-url");
-  const resultDiv = document.getElementById("classification-result");
+  async function getCurrentTabUrl() {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    return tab?.url || "";
+  }
 
-  classifyButton.addEventListener("click", async function () {
-    const postUrl = postUrlInput.value.trim();
-    if (!postUrl) {
-      alert("من فضلك أدخل رابط المنشور");
+  fillBtn.addEventListener("click", async () => {
+    try {
+      const u = await getCurrentTabUrl();
+      if (!u) return setStatus("ما قدرت أقرأ رابط الصفحة الحالية.", false);
+      postUrl.value = u;
+      setStatus("تم ✅");
+    } catch (e) {
+      setStatus(String(e?.message || e), false);
+    }
+  });
+
+  btn.addEventListener("click", async () => {
+    const value = (postUrl.value || "").trim();
+    if (!value) {
+      alert("الصقي رابط المنشور");
       return;
     }
 
-    resultDiv.textContent = "⏳ جارٍ التصنيف...";
-    resultDiv.style.color = "black";
+    setStatus("⏳ ...");
+
+    const payload = {
+      mode: "popup",
+      url: value,
+      text: "", // popup الحالي هدفه روابط
+      author: "Unknown",
+      post_time: new Date().toISOString(),
+      source: detectSource(value),
+    };
 
     try {
-      const result = await classifyWithFallback(postUrl);
-      resultDiv.textContent = `✅ التصنيف: ${result.label}`;
-      resultDiv.style.color = "green";
-      console.log(`📦 من السيرفر: ${result.server}`);
-    } catch (error) {
-      console.error("❌ فشل التصنيف:", error);
-      resultDiv.textContent = "⚠️ جميع السيرفرات مشغولة أو غير متاحة.";
-      resultDiv.style.color = "red";
+      const resp = await chrome.runtime.sendMessage({ type: "classifyPost", payload });
+      if (!resp?.ok) throw new Error(resp?.error || "Request failed");
+
+      const label = resp.result?.label || "Other";
+      setStatus(label, true);
+    } catch (e) {
+      console.error(e);
+      setStatus("⚠️ فشل", false);
     }
   });
 });

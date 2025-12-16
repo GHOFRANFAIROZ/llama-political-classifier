@@ -1,21 +1,15 @@
 {
   "manifest_version": 3,
   "name": "راصد المحتوى التحريضي الذكي",
-  "version": "1.0",
+  "version": "1.1",
   "description": "أداة لمراقبة وتصنيف المنشورات على فيسبوك وX بالذكاء الاصطناعي، لجمع أدلة على المحتوى التحريضي/العنيف وتسهيل التبليغ.",
-  "permissions": [
-    "scripting",
-    "tabs",
-    "storage",
-    "activeTab"
-  ],
+  "permissions": ["scripting", "tabs", "storage", "activeTab"],
   "host_permissions": [
-    "https://my-ai-classifier.onrender.com/*",
-    "https://antihatellamaproject-production.up.railway.app/*",
-    "https://*.x.com/*",
-    "https://*.twitter.com/*",
-    "https://*.facebook.com/*",
-    "<all_urls>"
+    "https://anti-hate-api.mangowave-59e53001.germanywestcentral.azurecontainerapps.io/*",
+    "https://x.com/*",
+    "https://twitter.com/*",
+    "https://www.facebook.com/*",
+    "https://facebook.com/*"
   ],
   "action": {
     "default_popup": "popup.html",
@@ -30,23 +24,15 @@
   },
   "content_scripts": [
     {
-      "matches": [
-        "<all_urls>"
-      ],
-      "js": [
-        "content.js"
-      ],
+      "matches": ["https://x.com/*", "https://twitter.com/*"],
+      "js": ["content.js"],
       "run_at": "document_idle"
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": [
-        "floating-icon/*"
-      ],
-      "matches": [
-        "<all_urls>"
-      ]
+      "resources": ["floating-icon/*", "icon.png", "icon16.png", "icon48.png", "icon128.png"],
+      "matches": ["https://x.com/*", "https://twitter.com/*"]
     }
   ]
 }

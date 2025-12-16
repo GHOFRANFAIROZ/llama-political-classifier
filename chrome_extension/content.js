@@ -1,138 +1,173 @@
-// 🧠 قائمة السيرفرات (Render + Railway)
-const SERVERS = [
-  "https://my-ai-classifier.onrender.com/classify",              // السيرفر الرئيسي
-  "https://antihatellamaproject-production.up.railway.app/classify" // السيرفر الاحتياطي
-];
+// ================================
+// X (Twitter) - Manual classify only (NO AUTO)
+// Inject a 🤖 button on each tweet and classify on click.
+// ================================
 
-// ⚙️ دالة تصنيف ذكية مع Fallback تلقائي
-async function classifyWithFallback(postData) {
-  for (const server of SERVERS) {
-    try {
-      console.log(`🔗 المحاولة مع السيرفر: ${server}`);
-      const response = await fetch(server, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: postData.text || postData.url })
-      });
+(function () {
+  const ROBOT_BTN_ATTR = "data-anti-hate-robot-btn";
+  const TOOLTIP_ATTR = "data-anti-hate-tooltip";
 
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const data = await response.json();
-
-      if (data.label) {
-        console.log(`✅ التصنيف من ${server}: ${data.label}`);
-        return { label: data.label, server };
-      } else if (data.error) {
-        throw new Error(data.error);
-      }
-    } catch (err) {
-      console.warn(`⚠️ السيرفر ${server} فشل (${err.message})`);
-    }
+  function isX() {
+    return location.hostname.includes("x.com") || location.hostname.includes("twitter.com");
   }
-  throw new Error("❌ جميع السيرفرات غير متاحة حالياً.");
-}
 
-/* ------------------ باقي الكود الأصلي دون تعديل ------------------ */
+  if (!isX()) return;
 
-function getTwitterAccountData() {
-  const username = document.querySelector("div[data-testid=\"UserName\"] span")?.innerText;
-  const followers = document.querySelector("a[href$=\"/followers\"] span")?.innerText;
-  const verified = !!document.querySelector("svg[aria-label=\"Verified account\"]");
-  const creationDate = "Not Available";
+  // -------- Helpers: extract tweet data --------
+  function getTweetUrlFromArticle(article) {
+    // Find any anchor that includes "/status/"
+    const a = article.querySelector('a[href*="/status/"]');
+    if (!a) return location.href;
+    const href = a.getAttribute("href");
+    if (!href) return location.href;
+    return new URL(href, location.origin).toString();
+  }
 
-  return {
-    platform: "X (Twitter)",
-    username,
-    followers,
-    verified,
-    creationDate,
-    url: window.location.href
-  };
-}
+  function getTweetTextFromArticle(article) {
+    const parts = Array.from(article.querySelectorAll('div[lang]'))
+      .map((d) => (d.innerText || "").trim())
+      .filter((t) => t.length > 0);
+    return parts.join(" ").trim();
+  }
 
-// ✅ Facebook: معلومات الحساب
-function getFacebookAccountData() {
-  const username = document.querySelector("h1")?.innerText;
-  const followers = document.querySelector("div[data-pagelet=\"ProfileFollowers\"] span")?.innerText;
-  const verified = !!document.querySelector("svg[aria-label=\"Verified\"]");
-  const creationDate = "Not Available";
+  function getAuthorFromArticle(article) {
+    // Try to find username area
+    const userNameEl =
+      article.querySelector('div[data-testid="User-Name"]') ||
+      article.querySelector('div[data-testid="UserName"]') ||
+      article.querySelector('div[data-testid="User-Name"] span') ||
+      article.querySelector('div[data-testid="UserName"] span');
 
-  return {
-    platform: "Facebook",
-    username,
-    followers,
-    verified,
-    creationDate,
-    url: window.location.href
-  };
-}
+    // fallback: first "a" that goes to profile
+    const profileLink = article.querySelector('a[href^="/"][role="link"]');
 
-// ✅ Twitter: النص
-function getTweetContent() {
-  const article = document.querySelector("article");
-  if (!article) return "";
-  const langDivs = article.querySelectorAll("div[lang]");
-  if (!langDivs || langDivs.length === 0) return "";
-  return Array.from(langDivs).map(div => div.innerText.trim()).filter(t => t.length > 0).join(" ");
-}
+    const txt = (userNameEl?.innerText || profileLink?.innerText || "").trim();
+    return txt || "Unknown";
+  }
 
-// ✅ Facebook: النص + الكاتب + الوقت
-function getFacebookPostContent() {
-  let postText = "";
-  let author = "";
-  let postTime = "";
+  function getPostTimeFromArticle(article) {
+    const timeEl = article.querySelector("time");
+    const dt = timeEl?.getAttribute("datetime");
+    return dt || new Date().toISOString();
+  }
 
-  const postDiv = document.querySelector("div[data-ad-preview='message'], div[dir='auto']");
-  if (postDiv) postText = postDiv.innerText.trim();
+  function findActionBar(article) {
+    // In X, action buttons are typically within a div[data-testid="reply"] etc.
+    // We try to locate the row containing reply/retweet/like.
+    const likeBtn = article.querySelector('button[data-testid="like"]');
+    if (likeBtn) return likeBtn.closest("div[role='group']") || likeBtn.parentElement;
+    const group = article.querySelector("div[role='group']");
+    return group || null;
+  }
 
-  const authorElement = document.querySelector("h2 strong span, h3 strong span, div[role='link'] span");
-  if (authorElement) author = authorElement.innerText.trim();
+  // -------- UI: tooltip --------
+  function removeExistingTooltip(article) {
+    const old = article.querySelector(`[${TOOLTIP_ATTR}="1"]`);
+    if (old) old.remove();
+  }
 
-  const timeElement = document.querySelector("abbr, span[aria-hidden='true'] time");
-  if (timeElement) postTime = timeElement.getAttribute("title") || timeElement.innerText;
+  function showTooltip(article, text) {
+    removeExistingTooltip(article);
 
-  return {
-    text: postText,
-    author: author,
-    post_time: postTime || new Date().toISOString(),
-    url: window.location.href,
-    platform: "Facebook"
-  };
-}
+    const tip = document.createElement("div");
+    tip.setAttribute(TOOLTIP_ATTR, "1");
+    tip.style.position = "absolute";
+    tip.style.zIndex = "999999";
+    tip.style.maxWidth = "360px";
+    tip.style.background = "rgba(255,255,255,0.95)";
+    tip.style.border = "1px solid rgba(0,0,0,0.15)";
+    tip.style.borderRadius = "10px";
+    tip.style.padding = "10px 12px";
+    tip.style.boxShadow = "0 6px 18px rgba(0,0,0,0.15)";
+    tip.style.fontSize = "12px";
+    tip.style.lineHeight = "1.35";
+    tip.style.color = "#111";
+    tip.style.whiteSpace = "pre-wrap";
 
-// --- إرسال البيانات ---
-setTimeout(() => {
-  const isTwitter = window.location.href.includes("twitter.com") || window.location.href.includes("x.com");
-  const isFacebook = window.location.href.includes("facebook.com");
+    tip.textContent = text;
 
-  // Twitter/X
-  if (isTwitter && window.location.href.includes("/status/")) {
-    const tweetText = getTweetContent();
-    const accountData = getTwitterAccountData();
-    const postTime = document.querySelector("time")?.getAttribute("datetime") || new Date().toISOString();
+    // Place near top-right of the tweet
+    const rect = article.getBoundingClientRect();
+    tip.style.top = `${window.scrollY + rect.top + 8}px`;
+    tip.style.left = `${window.scrollX + rect.right - 380}px`;
 
-    const postToClassify = {
-      text: tweetText,
-      url: window.location.href,
-      author: accountData.username,
-      post_time: postTime,
-      platform: "X (Twitter)"
+    document.body.appendChild(tip);
+
+    // Auto-hide after 7 seconds
+    setTimeout(() => {
+      if (tip && tip.parentNode) tip.remove();
+    }, 7000);
+  }
+
+  // -------- Create robot button --------
+  function createRobotButton() {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.setAttribute(ROBOT_BTN_ATTR, "1");
+    btn.title = "تصنيف هذه التغريدة";
+    btn.style.cursor = "pointer";
+    btn.style.border = "none";
+    btn.style.background = "transparent";
+    btn.style.fontSize = "16px";
+    btn.style.marginLeft = "6px";
+    btn.style.padding = "4px 6px";
+    btn.style.borderRadius = "8px";
+
+    // simple hover effect
+    btn.addEventListener("mouseenter", () => {
+      btn.style.background = "rgba(29,155,240,0.12)";
+    });
+    btn.addEventListener("mouseleave", () => {
+      btn.style.background = "transparent";
+    });
+
+    btn.textContent = "🤖";
+    return btn;
+  }
+
+  async function classifyArticle(article) {
+    const payload = {
+      url: getTweetUrlFromArticle(article),
+      text: getTweetTextFromArticle(article),
+      author: getAuthorFromArticle(article),
+      post_time: getPostTimeFromArticle(article),
+      source: "extension"
     };
 
-    classifyWithFallback(postToClassify).then(result => {
-      console.log("✅ تصنيف تلقائي:", result.label, "من:", result.server);
-    }).catch(err => {
-      console.error("❌ فشل التصنيف:", err);
-    });
+    showTooltip(article, "⏳ جاري التصنيف...");
+
+    try {
+      const resp = await chrome.runtime.sendMessage({ type: "classifyPost", payload });
+      if (!resp?.ok) throw new Error(resp?.error || "Request failed");
+
+      const label = resp.result?.label || "Other";
+      const reason = resp.result?.reason || "";
+      showTooltip(article, `${label}\n${reason}`);
+    } catch (e) {
+      console.error("Classification error:", e);
+      showTooltip(article, "⚠️ فشل التصنيف. تأكدي أن السيرفر شغال.");
+    }
   }
 
-  // Facebook
-  if (isFacebook && window.location.href.includes("/posts/")) {
-    const fbPost = getFacebookPostContent();
+  function injectButtons() {
+    const articles = document.querySelectorAll("article");
+    for (const article of articles) {
+      const actionBar = findActionBar(article);
+      if (!actionBar) continue;
 
-    classifyWithFallback(fbPost).then(result => {
-      console.log("✅ تصنيف تلقائي:", result.label, "من:", result.server);
-    }).catch(err => {
-      console.error("❌ فشل التصنيف:", err);
-    });
+      // Already has robot?
+      if (actionBar.querySelector(`[${ROBOT_BTN_ATTR}="1"]`)) continue;
+
+      const btn = createRobotButton();
+      btn.addEventListener("click", () => classifyArticle(article));
+
+      // Append at end of action bar
+      actionBar.appendChild(btn);
+    }
   }
-}, 3000);
+
+  // Run now + observe new tweets while scrolling
+  injectButtons();
+  const obs = new MutationObserver(() => injectButtons());
+  obs.observe(document.body, { childList: true, subtree: true });
+})();
