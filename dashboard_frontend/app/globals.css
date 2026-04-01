@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================
+   SENTINELONE PURPLE MATRIX BG
+   ============================ */
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #0A0A0F;
+  color: #E0E0E6;
+  overflow-x: hidden;
+
+  background-image:
+    linear-gradient(rgba(138, 43, 226, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(138,43,226,0.08) 1px, transparent 1px);
+  background-size: 55px 55px;
+  background-attachment: fixed;
+}
+
+body::before {
+  /* Purple Nebula */
+  content: "";
+  position: fixed;
+  top: -30%;
+  left: -20%;
+  width: 160%;
+  height: 160%;
+  background: radial-gradient(circle,
+    rgba(176,92,255,0.22),
+    transparent 65%
+  );
+  animation: nebulaPulse 6s infinite alternate ease-in-out;
+  z-index: -2;
+}
+
+@keyframes nebulaPulse {
+  0% { transform: scale(1); opacity: 0.35; }
+  100% { transform: scale(1.3); opacity: 0.55; }
+}
+
+/* Mouse Reactive Purple Light */
+#mouse-light {
+  position: fixed;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle,
+    rgba(176,92,255,0.25),
+    transparent 70%
+  );
+  pointer-events: none;
+  border-radius: 50%;
+  z-index: -1;
+  transition: transform 0.15s linear;
+}
+
+html { font-size: 16px; }
+svg { stroke-width: 1.5 !important; }
+a { text-decoration: none; }

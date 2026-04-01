@@ -31,3 +31,5 @@ NITTER_INSTANCES = [
     "https://nitter.1d4.us",
     "https://nitter.poast.org"
 ]
+
+# explain this function step by step in simple terms

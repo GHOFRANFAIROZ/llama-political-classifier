@@ -9,3 +9,15 @@ chromedriver.exe
 *.csv
 .env
 env.list
+node_modules/
+firebase_key.json
+*.bak
+.next/
+out/
+Thumbs.db
+.DS_Store
+*.pyc
+.pytest_cache/
+dist/
+build/
+coverage/

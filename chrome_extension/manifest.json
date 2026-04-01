@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "راصد المحتوى التحريضي الذكي",
-  "version": "1.5.1",
-  "description": "أداة لمراقبة وتصنيف المنشورات على فيسبوك وX بالذكاء الاصطناعي، لجمع أدلة على المحتوى التحريضي/العنيف وتسهيل التبليغ.",
+  "name": "Content Integrity Monitor",
+  "short_name": "Integrity Monitor",
+  "version": "1.5.4",
+  "description": "On-demand tool to document and classify social media posts into structured records for journalists and researchers.",
   "permissions": [
     "scripting",
     "tabs",
@@ -10,6 +11,7 @@
     "activeTab"
   ],
   "host_permissions": [
+    "http://192.168.1.109:5000/*",
     "https://anti-hate-api.mangowave-59e53001.germanywestcentral.azurecontainerapps.io/*",
     "https://x.com/*",
     "https://twitter.com/*",
@@ -31,7 +33,9 @@
     {
       "matches": [
         "https://x.com/*",
-        "https://twitter.com/*"
+        "https://twitter.com/*",
+        "https://www.facebook.com/*",
+        "https://facebook.com/*"
       ],
       "js": [
         "content.js"
@@ -50,7 +54,9 @@
       ],
       "matches": [
         "https://x.com/*",
-        "https://twitter.com/*"
+        "https://twitter.com/*",
+        "https://www.facebook.com/*",
+        "https://facebook.com/*"
       ]
     }
   ]

@@ -1,375 +1,774 @@
 from flask import Flask, request, jsonify
-from openai import OpenAI
+from flask_cors import CORS
 from dotenv import load_dotenv
 import os
-import gspread
-import json
-from datetime import datetime
-from google.oauth2 import service_account
 import logging
-from flask_cors import CORS
+from datetime import datetime
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+import uuid
+import time
+# ================================
+# Import modules (B2 Architecture)
+# ================================
+from llm_utils import (
+    build_prompt,
+    safe_json_parse,
+    fallback_result,
+    call_llm_with_backoff,
+)
 
-# --- إعداد Flask ---
+from sheets_utils import (
+    get_spreadsheet,
+    get_target_worksheet,
+)
+
+from dedupe_utils import (
+    clean_text,
+    make_dedupe_key,
+    is_duplicate,
+)
+
+from firestore_utils import (
+    save_org_report,
+    save_public_report,
+)
+
+from org_manager import OrgManager
+
+# ================================
+# Flask App Initialization
+# ================================
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
-# --- تحميل متغيرات البيئة ---
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["200 per hour"]
+)
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("anti-hate-api")
+
 load_dotenv()
 
-# --- إعداد التسجيل ---
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+@app.before_request
+def start_timer():
+    request.start_time = time.time()
+    request.request_id = str(uuid.uuid4())[:8]
 
-# --- إعداد Groq ---
-client = OpenAI(
-    api_key=os.getenv("GROQ_API_KEY"),
-    base_url="https://api.groq.com/openai/v1"
+@app.after_request
+def log_request(response):
+
+    latency = int((time.time() - request.start_time) * 1000)
+
+    logger.info(
+        f"req={request.request_id} "
+        f"path={request.path} "
+        f"status={response.status_code} "
+        f"latency={latency}ms"
+    )
+
+    return response
+# ================================
+# Gemini Settings
+# ================================
+from google import genai
+
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+DEFAULT_MODEL = os.getenv("GEMINI_MODEL", "models/gemini-2.5-flash")
+
+if not GEMINI_API_KEY:
+    logger.warning("⚠️ GEMINI_API_KEY is missing")
+
+gemini_client = genai.Client(api_key=GEMINI_API_KEY)
+
+# ================================
+# Sheets Settings (Public Mode ONLY)
+# ================================
+SHEET_URL = os.getenv("SHEET_URL")
+SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
+GOOGLE_CREDENTIALS_JSON = os.getenv("GOOGLE_CREDENTIALS_JSON") or os.getenv(
+    "GOOGLE_SHEETS_CREDENTIALS"
 )
-DEFAULT_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
 
-# --- أسماء الأوراق ---
 EXTENSION_SHEET_NAME = os.getenv("EXTENSION_SHEET_NAME", "Extension Reports")
+FACEBOOK_SHEET_NAME = os.getenv("FACEBOOK_SHEET_NAME", "Facebook Reports")
 MANUAL_SHEET_NAME = os.getenv("MANUAL_SHEET_NAME", "Manual Links")
+MOBILE_SHEET_NAME = os.getenv("MOBILE_SHEET_NAME", "Mobile Reports")
 
-# --- إعداد Google Sheets (Caches) ---
-_spreadsheet_cache = None
-_worksheet_cache = {}
+COMMON_HEADERS = [
+    "Timestamp",
+    "URL",
+    "Text",
+    "Author",
+    "Post Time",
+    "Label",
+    "Source",
+    "Reason",
+    "DedupeKey",
+    "Confidence",
+    "Context",
+]
 
-def _get_spreadsheet():
-    global _spreadsheet_cache
+# ================================
+# Firestore Setup
+# ================================
+from firebase_admin_setup import db
+from firebase_admin import firestore
 
-    if _spreadsheet_cache:
-        return _spreadsheet_cache
+# ================================
+# Organizations Manager
+# ================================
+org_manager = OrgManager()
 
-    scope = [
-        "https://www.googleapis.com/auth/spreadsheets",
-        "https://www.googleapis.com/auth/drive"
-    ]
+# ================================
+# Hate Speech Categories
+# ================================
+CATEGORY_DEFINITIONS = {
+    "CALL_FOR_VIOLENCE": {
+        "label_en": "Call for Violence",
+        "label_ar": "دعوة أو تحريض على العنف",
+        "tooltip_ar": "يتضمن دعوة إلى إيذاء جسدي.",
+    },
+    "SECTARIAN_RELIGIOUS_INCITEMENT": {
+        "label_en": "Sectarian / Religious Incitement",
+        "label_ar": "تحريض طائفي أو ديني",
+        "tooltip_ar": "تحريض ضد طائفة أو دين.",
+    },
+    "HATE_SPEECH_GROUP": {
+        "label_en": "Hate Speech Against a Group",
+        "label_ar": "خطاب كراهية ضد جماعة",
+        "tooltip_ar": "استهداف جماعة كاملة.",
+    },
+    "POLITICAL_VIOLENCE_INCITEMENT": {
+        "label_en": "Political Violence Incitement",
+        "label_ar": "تحريض على العنف السياسي",
+        "tooltip_ar": "عنف بسبب الانتماء السياسي.",
+    },
+    "WAR_CRIMES_DENIAL_JUSTIFICATION": {
+        "label_en": "War Crimes Denial / Justification",
+        "label_ar": "تبرير/إنكار أذى واسع",
+        "tooltip_ar": "تبرير أو إنكار أفعال ضد المدنيين.",
+    },
+    "TOXIC_PERSONAL_ATTACK": {
+        "label_en": "Toxic Personal Attack",
+        "label_ar": "هجوم شخصي سام",
+        "tooltip_ar": "موجه لشخص واحد.",
+    },
+    "PROTECTED_POLITICAL_OPINION": {
+        "label_en": "Protected Political Opinion",
+        "label_ar": "رأي سياسي محمي",
+        "tooltip_ar": "نقد سياسي بلا عنف.",
+    },
+    "NEUTRAL_OTHER": {
+        "label_en": "Neutral / Other",
+        "label_ar": "محايد / غير ذلك",
+        "tooltip_ar": "محتوى عادي.",
+    },
+}
 
-    # يدعم الاسمين لمرونة أكبر
-    creds_json = os.getenv("GOOGLE_SHEETS_CREDENTIALS") or os.getenv("GOOGLE_CREDENTIALS_JSON")
-    if not creds_json:
-        raise ValueError("GOOGLE_CREDENTIALS_JSON missing")
+VALID_LABEL_IDS = set(CATEGORY_DEFINITIONS.keys())
 
-    creds_dict = json.loads(creds_json)
-    creds = service_account.Credentials.from_service_account_info(creds_dict, scopes=scope)
-    sheet_client = gspread.authorize(creds)
+TEXT_LABEL_TO_ID = {
+    "call for violence": "CALL_FOR_VIOLENCE",
+    "sectarian / religious incitement": "SECTARIAN_RELIGIOUS_INCITEMENT",
+    "sectarian incitement": "SECTARIAN_RELIGIOUS_INCITEMENT",
+    "hate speech against a group": "HATE_SPEECH_GROUP",
+    "political violence incitement": "POLITICAL_VIOLENCE_INCITEMENT",
+    "war crimes denial / justification": "WAR_CRIMES_DENIAL_JUSTIFICATION",
+    "toxic personal attack": "TOXIC_PERSONAL_ATTACK",
+    "protected political opinion": "PROTECTED_POLITICAL_OPINION",
+    "neutral": "NEUTRAL_OTHER",
+    "other": "NEUTRAL_OTHER",
+    "unknown": "NEUTRAL_OTHER",
+}
 
-    sheet_url = os.getenv("SHEET_URL")
-    spreadsheet_id = os.getenv("SPREADSHEET_ID")
+PROMPT_VERSION = "v4"
 
-    if sheet_url:
-        spreadsheet = sheet_client.open_by_url(sheet_url)
-    elif spreadsheet_id:
-        spreadsheet = sheet_client.open_by_key(spreadsheet_id)
-    else:
-        raise ValueError("Missing SHEET_URL or SPREADSHEET_ID")
+def normalize_ai_response(ai_data, parse_err, request_id, path):
+    if parse_err:
+        logger.warning(
+            f"req={request_id} path={path} llm_parse_note={parse_err}"
+        )
 
-    _spreadsheet_cache = spreadsheet
-    return spreadsheet
+    if ai_data is None:
+        ai_data = fallback_result(parse_err)
 
+    raw_label_id = str(ai_data.get("label_id") or "").strip().upper()
+    if raw_label_id not in VALID_LABEL_IDS:
+        raw_label_id = "NEUTRAL_OTHER"
 
-def _ensure_worksheet(spreadsheet, title: str, rows: int = 2000, cols: int = 20):
-    """
-    يرجع Worksheet موجودة.
-    إذا ما كانت موجودة، ينشئها تلقائيًا.
-    """
-    global _worksheet_cache
+    cat = CATEGORY_DEFINITIONS[raw_label_id]
 
-    if title in _worksheet_cache:
-        return _worksheet_cache[title]
+    reason_ar = str(ai_data.get("reason_ar") or ai_data.get("reason") or "").strip()
+    if not reason_ar:
+        reason_ar = cat["tooltip_ar"]
 
     try:
-        ws = spreadsheet.worksheet(title)
-        _worksheet_cache[title] = ws
-        return ws
-    except Exception:
-        logger.info(f"🟣 Worksheet '{title}' not found. Creating it...")
-        ws = spreadsheet.add_worksheet(title=title, rows=str(rows), cols=str(cols))
-        _worksheet_cache[title] = ws
-        return ws
+        conf = float(ai_data.get("confidence_score", 0.50))
+    except (TypeError, ValueError):
+        conf = 0.50
 
+    conf = max(0.0, min(1.0, conf))
 
-def get_target_worksheet(mode: str, source: str):
-    """
-    قواعد التخزين:
-    - popup اليدوي (mode == 'popup') -> Manual Links
-    - غير ذلك (روبوت X وغيره) -> Extension Reports
-    """
-    spreadsheet = _get_spreadsheet()
+    return raw_label_id, cat, reason_ar, conf
 
-    if (mode or "").strip().lower() == "popup":
-        return _ensure_worksheet(spreadsheet, MANUAL_SHEET_NAME)
+def verify_org_token(org_id):
+    token = request.headers.get("X-ORG-TOKEN")
 
-    # الافتراضي: extension / الروبوت
-    return _ensure_worksheet(spreadsheet, EXTENSION_SHEET_NAME)
+    if not token:
+        return False
 
+    doc = db.collection("organizations").document(org_id).get()
 
-def clean_text(text):
-    if not text:
-        return ""
-    return text.replace("\n", " ").strip()[:1000]
+    if not doc.exists:
+        return False
 
+    data = doc.to_dict()
 
-# ✅ لا نختصر ولا نعدل البرومبت أبداً (كما طلبتي)
-def build_prompt(text: str) -> str:
-    return f'''
-You are an advanced AI content classification agent working on political posts in the Syrian context.
-
-Your task is to analyze the following post and classify it into **only one** of the following categories:
-1. Call for Violence
-2. Sectarian Incitement
-3. Spreading False Information
-4. Politically Charged but Not Harmful
-5. Neutral
-6. Other
-
-Be strict, context-aware, and do not treat vague or emotionally charged language as Neutral if it implies division, misinformation, or incitement. Be especially cautious with sarcasm, indirect blame, or accusations without proof.
-
----
-
-🔴 Call for Violence:
-Posts that directly or indirectly promote violence.
-Includes:
-- Encouragement to harm, kill, or punish.
-- Collective revenge, even implied.
-- Words like: “remove them”, “they must pay”, “actions will replace words”.
-- Justification of military violence.
-
-✅ Examples:
-- "We must remove them before they poison more minds."
-→ Classification: Call for Violence
-
-- "Our patience is running out. Soon, actions will replace words."
-→ Classification: Call for Violence
-
-- "The Israeli airstrikes on Syria are a justified response to Iranian militias."
-→ Classification: Call for Violence
-
----
-
-🟠 Sectarian Incitement:
-Promotes division based on sectarian/religious identity.
-Includes:
-- Statements against Alawites, Sunnis, Christians as groups.
-- Advocating leadership based on sect.
-- Demanding separation or autonomy for sects.
-
-✅ Examples:
-- "We need a Sunni-led restructuring — anything else is betrayal."
-→ Classification: Sectarian Incitement
-
-- "Christians need their own administration. We can’t trust Islamists."
-→ Classification: Sectarian Incitement
-
-- "Only international protection can stop the massacres happening in the north."
-→ Classification: Sectarian Incitement
-
----
-
-🟡 Spreading False Information:
-Spreads unverified or distorted political claims.
-Includes:
-- Suggesting conspiracy without evidence.
-- Equating transitional government with Assad’s regime without basis.
-- Denying documented crimes.
-- Making accusations without identifying actors clearly.
-
-✅ Examples:
-- "People say Assad ordered the massacres, but did anyone actually see him do it? Maybe we're not seeing the full picture."
-→ Classification: Spreading False Information
-
-- "The transitional government is being too cozy with foreign powers. Who do they really work for?"
-→ Classification: Spreading False Information
-
-- "The 'liberated areas' were lawless zones ruled by extremists. The media silenced every voice exposing the truth."
-→ Classification: Spreading False Information
-
----
-
-🟤 Politically Charged but Not Harmful:
-Strong criticism or sarcasm without falsehoods, hate, or division.
-Includes:
-- Blaming leadership or war outcomes without promoting hate.
-- Frustrated tone or skepticism without distortion.
-- Emotionally loaded but truthful posts.
-
-✅ Examples:
-- "The transitional government wants us to trust them, but they’ve done nothing yet."
-→ Classification: Politically Charged but Not Harmful
-
-- "Nice PR campaign by the new leaders. Let’s see if anything changes."
-→ Classification: Politically Charged but Not Harmful
-
-- "Everyone thinks they’re the saviors. People still starve."
-→ Classification: Politically Charged but Not Harmful
-
----
-
-🟢 Neutral:
-Verified facts or clear political views without hostility, hate, or manipulation.
-Includes:
-- Frustration with justice or leadership that does not promote hate.
-- Descriptive posts without distortion.
-
-✅ Examples:
-- "No weapons outside state authority."
-→ Classification: Neutral
-
-- "We need services in the liberated areas."
-→ Classification: Neutral
-
-- "Let them live peacefully, but never again in charge."
-→ Classification: Neutral
-
----
-
-🟣 Other:
-Use when:
-- The post is unrelated to politics/violence.
-- Or too vague to classify with confidence.
-
----
-⚠️ IMPORTANT OUTPUT FORMAT (JSON ONLY):
-You must respond with a strictly valid JSON object. Do not include any other text.
-The JSON must follow this exact structure:
-{{
-  "label": "WRITE_THE_EXACT_CATEGORY_NAME_HERE",
-  "reason": "Write a short sentence explaining why you chose this label."
-}}
-
-POST TO ANALYZE:
-{text}
-'''
-
-
-def _build_cors_preflight_response():
-    response = jsonify({"status": "cors_ok"})
-    response.headers.add("Access-Control-Allow-Origin", "*")
-    response.headers.add("Access-Control-Allow-Headers", "Content-Type")
-    response.headers.add("Access-Control-Allow-Methods", "POST, OPTIONS")
-    return response, 200
-
-
-# --- فحوصات الصحة ---
-@app.route("/health", methods=["GET"])
+    return data.get("org_token") == token
+# ================================
+# HEALTH CHECK
+# ================================
+@app.route("/health")
 def health():
     return jsonify({"status": "ok"}), 200
 
 
-@app.route("/healthz", methods=["GET"])
-def healthz():
-    return jsonify({"status": "ok"}), 200
-
-
-def is_duplicate(ws, url: str, check_last: int = 50) -> bool:
-    """
-    Dedupe بسيط: نفحص آخر N صفوف من عمود الرابط (B).
-    """
-    if not url:
-        return False
-
-    try:
-        col_values = ws.col_values(2)  # عمود B
-        last_rows = col_values[-check_last:] if len(col_values) > check_last else col_values
-        return url in last_rows
-    except Exception as e:
-        logger.warning(f"Dedup check failed: {e}")
-        return False
-
-
-@app.route("/classify_v2", methods=["POST", "OPTIONS"])
-def classify():
-    if request.method == "OPTIONS":
-        return _build_cors_preflight_response()
-
+# ================================
+# CLASSIFY V2 (B2)
+# ================================
+@limiter.limit("20 per minute")
+@app.route("/classify_v2", methods=["POST"])
+def classify_v2():
     try:
         data = request.get_json(silent=True) or {}
 
-        mode = (data.get("mode", "") or "").strip()          # "popup" أو غيره
-        source = (data.get("source", "extension") or "").strip()
+        # ORG MODE
+        org_name = (data.get("org_name") or "").strip()
+        org_metadata = org_manager.get_or_create_org(org_name) if org_name else None
 
-        text_to_analyze = data.get("text", "") or ""
-        url_link = data.get("url", "") or ""
-        author = data.get("author", "Unknown") or "Unknown"
-        post_time = data.get("post_time", "") or ""
+        # Inputs
+        mode = data.get("mode", "extension")
+        source = data.get("source", "extension")
+        text = data.get("text", "")
+        url = data.get("url", "")
+        author = data.get("author", "Unknown")
+        post_time = data.get("post_time", "")
 
-        raw_input = text_to_analyze if text_to_analyze else url_link
+        context = (
+            data.get("context")
+            or data.get("user_context")
+            or data.get("userContext")
+            or ""
+        )
+
+        raw_input = text if text else url
         if not raw_input:
             return jsonify({"error": "Empty input"}), 400
 
-        logger.info(f"Analyzing ({mode}/{source}) by {author}: {raw_input[:80]}...")
+        # Prompt
+        prompt_input = raw_input + (f"\n\n[UserContext]\n{context}" if context else "")
+        prompt = build_prompt(prompt_input)
 
-        # 1) Groq call
-        prompt = build_prompt(raw_input)
-        response = client.chat.completions.create(
-            model=DEFAULT_MODEL,
-            messages=[{"role": "user", "content": prompt}],
-            response_format={"type": "json_object"}
+        ai_content = call_llm_with_backoff(prompt, DEFAULT_MODEL)
+        ai_data, parse_err = safe_json_parse(ai_content)
+
+        raw_label_id, cat, reason_ar, conf = normalize_ai_response(
+            ai_data=ai_data,
+            parse_err=parse_err,
+            request_id=request.request_id,
+            path=request.path,
         )
+        # Text for sheet
+        text_for_sheet = text + (f"\n\n[UserContext]\n{context}" if context else "")
 
-        # 2) Parse response
-        ai_content = response.choices[0].message.content
-        ai_data = json.loads(ai_content)
+        dedupe_key = make_dedupe_key(source, url, text)
+        duplicate = False
+        sheet_title = "unknown"
 
-        label = ai_data.get("label", "Other")
-        reason = ai_data.get("reason", "No reason provided")
+        # ORG MODE (Firestore only)
+        if org_metadata:
+            save_org_report(
+                org_metadata["org_id"],
+                {
+                    "text": text,
+                    "url": url,
+                    "author": author,
+                    "post_time": post_time,
+                    "label_id": raw_label_id,
+                    "reason_ar": reason_ar,
+                    "confidence_score": conf,
+                    "source": source,
+                    "context": context,
+                    "dedupe_key": dedupe_key,
+                },
+            )
 
-        logger.info(f"Result: {label} | Reason: {reason}")
+        # PUBLIC MODE
+        else:
+            ss = get_spreadsheet(GOOGLE_CREDENTIALS_JSON, SHEET_URL, SPREADSHEET_ID)
+            ws = get_target_worksheet(
+                mode,
+                source,
+                ss,
+                EXTENSION_SHEET_NAME,
+                FACEBOOK_SHEET_NAME,
+                MANUAL_SHEET_NAME,
+                MOBILE_SHEET_NAME,
+                COMMON_HEADERS,
+            )
 
-        # 3) Log to Google Sheets (حسب المصدر)
-        try:
-            ws = get_target_worksheet(mode=mode, source=source)
+            sheet_title = ws.title
 
-            # ✅ Dedupe فقط على Extension Reports (روبوت X)
-            if ws.title == EXTENSION_SHEET_NAME and url_link:
-                if is_duplicate(ws, url_link, check_last=50):
-                    logger.info("🟡 Duplicate URL detected in Extension Reports. Skipping append.")
-                    return jsonify({
-                        "label": label,
-                        "reason": reason,
-                        "success": True,
-                        "deduped": True,
-                        "sheet": ws.title
-                    }), 200
+            if is_duplicate(ws, dedupe_key):
+                duplicate = True
+            else:
+                ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                ws.append_row(
+                    [
+                        ts,
+                        url,
+                        clean_text(text_for_sheet),
+                        author,
+                        post_time,
+                        cat["label_ar"],
+                        source,
+                        reason_ar,
+                        dedupe_key,
+                        conf,
+                        context,
+                    ]
+                )
 
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            save_public_report(
+                {
+                    "text": text,
+                    "url": url,
+                    "author": author,
+                    "post_time": post_time,
+                    "label_id": raw_label_id,
+                    "reason_ar": reason_ar,
+                    "confidence_score": conf,
+                    "source": source,
+                    "context": context,
+                    "dedupe_key": dedupe_key,
+                }
+            )
 
-            # نفس الأعمدة اللي عندك (نتركها ثابتة)
-            ws.append_row([
-                timestamp,                   # A Timestamp
-                url_link,                    # B URL
-                clean_text(text_to_analyze), # C Text
-                author,                      # D Author
-                post_time,                   # E Post Time
-                label,                       # F Label
-                source,                      # G Source
-                reason,                      # H Reason
-                ""                           # I media_urls placeholder
-            ])
-
-            logger.info(f"✅ Logged to Sheets -> {ws.title}")
-
-        except Exception as sheet_error:
-            logger.error(f"Sheets logging failed: {sheet_error}")
-
-        return jsonify({
-            "label": label,
-            "reason": reason,
-            "success": True,
-            "sheet": (MANUAL_SHEET_NAME if mode.lower() == "popup" else EXTENSION_SHEET_NAME)
-        }), 200
+        return jsonify(
+            {
+                "label_id": raw_label_id,
+                "label_en": cat["label_en"],
+                "label_ar": cat["label_ar"],
+                "reason_ar": reason_ar,
+                "confidence_score": conf,
+                "prompt_version": PROMPT_VERSION,
+                "dedupe_key": dedupe_key,
+                "duplicate": duplicate,
+                "success": True,
+                "sheet": sheet_title,
+                "org_id": org_metadata["org_id"] if org_metadata else None,
+                "label": cat["label_ar"],
+                "reason": reason_ar,
+            }
+        ), 200
 
     except Exception as e:
-        logger.error(f"Critical Error: {e}", exc_info=True)
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"[CLASSIFY ERROR] {e}", exc_info=True)
+        return jsonify({"error": "Internal server error"}), 500
 
 
-@app.route("/", methods=["GET"])
+# ================================
+# MOBILE SHARE (B2)
+# ================================
+@limiter.limit("20 per minute")
+@app.route("/mobile_share", methods=["POST"])
+def mobile_share():
+    try:
+        data = request.get_json(silent=True) or {}
+
+        org_name = (data.get("org_name") or "").strip()
+        org_metadata = org_manager.get_or_create_org(org_name) if org_name else None
+
+        mode = "mobile_share"
+        source = data.get("source", "mobile")
+        text = data.get("text", "")
+        url = data.get("url", "")
+        author = data.get("author", "MobileUser")
+        post_time = data.get("post_time", "")
+        client = data.get("client", "mobile_share")
+
+        context = (
+            data.get("context")
+            or data.get("user_context")
+            or data.get("userContext")
+            or ""
+        )
+
+        raw_input = text if text else url
+        if not raw_input:
+            return jsonify({"error": "Empty input"}), 400
+
+        prompt_input = raw_input + (f"\n\n[UserContext]\n{context}" if context else "")
+        prompt = build_prompt(prompt_input)
+
+        ai_content = call_llm_with_backoff(prompt, DEFAULT_MODEL)
+        ai_data, parse_err = safe_json_parse(ai_content)
+
+        raw_label_id, cat, reason_ar, conf = normalize_ai_response(
+            ai_data=ai_data,
+            parse_err=parse_err,
+            request_id=request.request_id,
+            path=request.path,
+        )
+
+        text_for_sheet = text + (f"\n\n[UserContext]\n{context}" if context else "")
+
+        dedupe_key = make_dedupe_key(source, url, text)
+        duplicate = False
+
+        # ORG MODE
+        if org_metadata:
+            save_org_report(
+                org_metadata["org_id"],
+                {
+                    "text": text,
+                    "url": url,
+                    "author": author,
+                    "post_time": post_time,
+                    "label_id": raw_label_id,
+                    "reason_ar": reason_ar,
+                    "confidence_score": conf,
+                    "source": source,
+                    "context": context,
+                    "dedupe_key": dedupe_key,
+                },
+            )
+
+        # PUBLIC MODE
+        else:
+            ss = get_spreadsheet(GOOGLE_CREDENTIALS_JSON, SHEET_URL, SPREADSHEET_ID)
+            ws = get_target_worksheet(
+                mode,
+                source,
+                ss,
+                EXTENSION_SHEET_NAME,
+                FACEBOOK_SHEET_NAME,
+                MANUAL_SHEET_NAME,
+                MOBILE_SHEET_NAME,
+                COMMON_HEADERS,
+            )
+
+            if is_duplicate(ws, dedupe_key):
+                duplicate = True
+            else:
+                ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                ws.append_row(
+                    [
+                        ts,
+                        url,
+                        clean_text(text_for_sheet),
+                        author,
+                        post_time,
+                        cat["label_ar"],
+                        source,
+                        reason_ar,
+                        dedupe_key,
+                        conf,
+                        context,
+                    ]
+                )
+
+            save_public_report(
+                {
+                    "text": text,
+                    "url": url,
+                    "author": author,
+                    "post_time": post_time,
+                    "label_id": raw_label_id,
+                    "reason_ar": reason_ar,
+                    "confidence_score": conf,
+                    "source": source,
+                    "context": context,
+                    "dedupe_key": dedupe_key,
+                }
+            )
+
+        msg_lines = [f"🧠 التصنيف: {cat['label_ar']}"]
+        if reason_ar:
+            msg_lines.append(f"📝 السبب: {reason_ar}")
+        if conf < 0.45:
+            msg_lines.append("🔎 يُفضّل التحقق البشري لهذه الحالة.")
+
+        return jsonify(
+            {
+                "label_id": raw_label_id,
+                "label_en": cat["label_en"],
+                "label_ar": cat["label_ar"],
+                "reason_ar": reason_ar,
+                "confidence_score": conf,
+                "prompt_version": PROMPT_VERSION,
+                "duplicate": duplicate,
+                "success": True,
+                "message_ar": "\n".join(msg_lines),
+                "source": source,
+                "client": client,
+                "org_id": org_metadata["org_id"] if org_metadata else None,
+            }
+        ), 200
+
+    except Exception as e:
+        logger.error(f"[MOBILE ERROR] {e}", exc_info=True)
+        return jsonify({"error": "Internal server error"}), 500
+
+
+# ================================
+# UNIFIED SAVE RECORD (Public + Org)
+# ================================
+@app.route("/save_record", methods=["POST"])
+def save_record():
+    try:
+        data = request.get_json() or {}
+
+        # 1) Detect Org Mode
+        org_id = data.get("org_id") or data.get("org_token")
+
+        # Build searchable_text
+        clean_text_val = (data.get("raw_text") or data.get("text") or "").lower()
+        clean_reason = (data.get("reason_ar") or data.get("result_reason") or "").lower()
+        data["searchable_text"] = f"{clean_text_val} {clean_reason}".strip()
+
+        # 2) ORG MODE  → Firestore
+        if org_id:
+            ok = save_org_report(org_id, data)
+            return jsonify({"ok": ok, "mode": "org"}), 200
+
+        # 3) PUBLIC MODE → Google Sheets + Firestore Public
+        else:
+            # Save to Firestore public collection
+            save_public_report(data)
+
+            # Save to Google Sheets
+            ss = get_spreadsheet(GOOGLE_CREDENTIALS_JSON, SHEET_URL, SPREADSHEET_ID)
+            ws = get_target_worksheet(
+                "extension",
+                data.get("source", "extension"),
+                ss,
+                EXTENSION_SHEET_NAME,
+                FACEBOOK_SHEET_NAME,
+                MANUAL_SHEET_NAME,
+                MOBILE_SHEET_NAME,
+                COMMON_HEADERS,
+            )
+
+            ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            ws.append_row(
+                [
+                    ts,
+                    data.get("url", ""),
+                    data.get("raw_text") or data.get("text") or "",
+                    data.get("author", "Unknown"),
+                    data.get("post_time", ""),
+                    data.get("result_label", ""),
+                    data.get("source", ""),
+                    data.get("result_reason", ""),
+                    data.get("dedupe_key", ""),
+                    data.get("confidence", ""),
+                    data.get("context", ""),
+                ]
+            )
+
+            return jsonify({"ok": True, "mode": "public"}), 200
+
+    except Exception as e:
+        logger.error(f"[SAVE_RECORD ERROR] {e}", exc_info=True)
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# ================================
+# ROOT ENDPOINT
+# ================================
+@app.route("/")
 def home():
-    return "My AI Classifier V2 is Running!", 200
+    return "My AI Classifier V2 (Modular B2 Architecture) is Running!", 200
 
 
+# ================================
+# ORG MODE ENDPOINTS
+# ================================
+@app.route("/org/<org_id>/stats", methods=["GET"])
+def get_org_stats(org_id):
+    from firestore_utils import get_org_stats
+
+    try:
+        stats = get_org_stats(org_id)
+        return jsonify(stats), 200
+    except Exception as e:
+        logger.error(f"[STATS ERROR] {e}", exc_info=True)
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@app.route("/org/<org_id>/trends", methods=["GET"])
+def get_org_trends(org_id):
+    from firestore_utils import get_org_trends
+    try:
+        date_range = request.args.get("date_range", "30d")
+        data = get_org_trends(org_id, date_range=date_range)
+        return jsonify(data), 200
+    except Exception as e:
+        logger.error(f"[TRENDS ERROR] {e}", exc_info=True)
+        return jsonify({"error": "Internal server error"}), 500
+
+@app.route("/org/<org_id>/wordcloud", methods=["GET"])
+def get_org_wordcloud(org_id):
+    from firestore_utils import get_org_wordcloud
+
+    try:
+        data = get_org_wordcloud(org_id)
+        return jsonify(data), 200
+    except Exception as e:
+        logger.error(f"[WORDCLOUD ERROR] {e}", exc_info=True)
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@app.route("/org/<org_id>/reports", methods=["GET"])
+def get_org_reports_route(org_id):
+    from firestore_utils import get_org_reports
+
+    try:
+        limit = int(request.args.get("limit", 20))
+        page = int(request.args.get("page", 1))
+
+        category = request.args.get("category")
+        platform = request.args.get("platform")
+        date_from = request.args.get("date_from")
+        date_to = request.args.get("date_to")
+
+        sort = request.args.get("sort", "desc").lower()
+        if sort not in ["asc", "desc"]:
+            sort = "desc"
+
+        data = get_org_reports(
+            org_id=org_id,
+            limit=limit,
+            page=page,
+            category=category,
+            platform=platform,
+            date_from=date_from,
+            date_to=date_to,
+            sort=sort,
+        )
+
+        return jsonify(data), 200
+
+    except Exception as e:
+        logger.error(f"[REPORTS ERROR] {e}", exc_info=True)
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@app.route("/org/<org_id>/search", methods=["GET"])
+def search_org_reports(org_id):
+    from firestore_utils import search_org_reports
+
+    try:
+        query = request.args.get("query", "").strip()
+        limit = int(request.args.get("limit", 20))
+        page = int(request.args.get("page", 1))
+
+        category = request.args.get("category")
+        platform = request.args.get("platform")
+        date_from = request.args.get("date_from")
+        date_to = request.args.get("date_to")
+        sort = request.args.get("sort", "desc").lower()
+
+        data = search_org_reports(
+            org_id=org_id,
+            query=query,
+            limit=limit,
+            page=page,
+            category=category,
+            platform=platform,
+            date_from=date_from,
+            date_to=date_to,
+            sort=sort,
+        )
+
+        return jsonify(data), 200
+
+    except Exception as e:
+        logger.error(f"[SEARCH ERROR] {e}", exc_info=True)
+        return jsonify({"error": "Internal server error"}), 500
+
+# ================================
+# SIMPLE SEARCH API (Sample Data)
+# ================================
+
+@limiter.limit("60 per minute")
+@app.route("/api/reports/search", methods=["GET"])
+def search_reports():
+    """
+    Public reports search (Firestore-backed).
+    Keeps the same query params used by the dashboard.
+    """
+    try:
+        from firestore_utils import search_public_reports
+
+        q = request.args.get("q", "", type=str).strip()
+        platform = request.args.get("platform", "", type=str).strip()
+        classification = request.args.get("classification", "", type=str).strip()
+        date_range = request.args.get("date_range", "7d", type=str)
+        limit = request.args.get("limit", 50, type=int)
+        offset = request.args.get("offset", 0, type=int)
+
+        data = search_public_reports(
+            q=q,
+            limit=limit,
+            offset=offset,
+            platform=platform or None,
+            category=classification or None,   # classification -> label_id
+            date_range=date_range,
+            sort="desc",
+        )
+
+        return jsonify(data), 200
+    
+    except Exception as e:
+        logger.error(f"[PUBLIC SEARCH ERROR] {e}", exc_info=True)
+        return jsonify({"error": "Internal server error"}), 500
+# ================================
+# ORGS LIST (for dashboard)
+# ================================
+@app.route("/orgs", methods=["GET"])
+def list_organizations():
+    """
+    Returns a list of organizations for the dashboard.
+    Shape:
+    {
+      "results": [
+        {
+          "org_id": "...",
+          "display_name": "...",
+          "slug": "...",
+          "plan": "...",
+          "country": "..."
+        },
+        ...
+      ]
+    }
+    """
+    try:
+        # ملاحظة: لازم تكون ضفت دالة list_orgs في org_manager.py
+        orgs = org_manager.list_orgs()
+        return jsonify({"results": orgs}), 200
+    except Exception as e:
+        logger.error(f"[ORGS ERROR] {e}", exc_info=True)
+        return jsonify({"error": "Internal server error"}), 500
+
+# ==============================
+# RUN SERVER
+# ==============================
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)

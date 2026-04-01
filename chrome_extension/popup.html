@@ -1,18 +1,17 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+
 <head>
   <meta charset="UTF-8" />
   <title>راصد المحتوى التحريضي الذكي</title>
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap" rel="stylesheet">
-
+  <!-- خط Amiri محلي لمنع مشاكل CSP -->
   <style>
+    
     :root {
       --bg-main: #0f0b1e;
       --bg-card: #1a1333;
-      --border: rgba(255,255,255,0.12);
+      --border: rgba(255, 255, 255, 0.12);
       --text: #f2f0fa;
       --muted: #b9b4d8;
       --accent: #7b5cff;
@@ -26,9 +25,7 @@
     body {
       margin: 0;
       width: 320px;
-      height: 210px;
-      /* تم تعميم خط Amiri هنا ليشمل الصفحة كلها */
-      font-family: 'Amiri', serif; 
+      height: 320px;
       background: linear-gradient(180deg, #0c0818, #140e2b);
       color: var(--text);
       overflow: hidden;
@@ -38,7 +35,6 @@
       padding: 14px;
     }
 
-    /* ===== Header ===== */
     .header {
       text-align: center;
       margin-bottom: 10px;
@@ -46,14 +42,12 @@
 
     .header h1 {
       margin: 0;
-      /* حجم العنوان */
-      font-size: 22px; 
+      font-size: 22px;
       font-weight: 700;
       color: var(--text);
-      text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
     }
 
-    /* ===== Card ===== */
     .card {
       background: var(--bg-card);
       border: 1px solid var(--border);
@@ -63,10 +57,9 @@
     }
 
     .card:hover {
-      box-shadow: 0 0 18px rgba(123,92,255,0.12);
+      box-shadow: 0 0 18px rgba(123, 92, 255, 0.12);
     }
 
-    /* ===== Textarea ===== */
     textarea {
       width: 100%;
       height: 56px;
@@ -75,30 +68,24 @@
       border: 1px solid var(--border);
       border-radius: 10px;
       padding: 10px;
-      
-      /* زيادة الخط لـ 14px لأن خط Amiri ناعم ويحتاج تكبير */
-      font-size: 14px; 
+      font-size: 14px;
       font-weight: 400;
-      font-family: inherit; /* يرث Amiri من الـ body */
-      
       color: var(--text);
       outline: none;
-
       direction: rtl;
       text-align: right;
-
       transition: border 0.25s ease, box-shadow 0.25s ease;
     }
 
     textarea::placeholder {
       color: #8e88b8;
-      font-size: 13px; /* حجم الـ placeholder */
+      font-size: 13px;
     }
 
     textarea:hover,
     textarea:focus {
       border-color: var(--accent);
-      box-shadow: 0 0 10px rgba(123,92,255,0.22);
+      box-shadow: 0 0 10px rgba(123, 92, 255, 0.22);
     }
 
     textarea:focus {
@@ -106,7 +93,6 @@
       text-align: left;
     }
 
-    /* ===== Buttons ===== */
     .row {
       display: flex;
       gap: 8px;
@@ -117,18 +103,11 @@
       flex: 1;
       border: none;
       border-radius: 10px;
-      padding: 6px 0; /* تقليل الـ padding قليلاً لأن الخط كبر */
-      
-      /* زيادة الخط لـ 14px ليكون واضحاً */
-      font-size: 14px; 
-      font-weight: 700; /* جعل الخط سميكاً في الأزرار لجمالية أكثر */
-      
+      padding: 6px 0;
+      font-size: 14px;
+      font-weight: 700;
       cursor: pointer;
-      font-family: inherit; /* يرث Amiri */
-      transition:
-        background 0.3s ease,
-        box-shadow 0.3s ease,
-        transform 0.2s ease;
+      transition: background 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
     }
 
     .btn-secondary {
@@ -140,7 +119,7 @@
     .btn-secondary:hover {
       color: #ffffff;
       border-color: var(--accent);
-      box-shadow: 0 0 12px rgba(123,92,255,0.25);
+      box-shadow: 0 0 12px rgba(123, 92, 255, 0.25);
       transform: translateY(-1px);
     }
 
@@ -150,25 +129,73 @@
     }
 
     .btn-primary:hover {
-      box-shadow:
-        0 0 14px rgba(123,92,255,0.45),
-        0 0 22px rgba(94,70,200,0.35);
+      box-shadow: 0 0 14px rgba(123, 92, 255, 0.45), 0 0 22px rgba(94, 70, 200, 0.35);
       transform: translateY(-1px);
     }
 
-    /* ===== Result ===== */
     .status {
       margin-top: 8px;
-      font-size: 12px; /* تكبير بسيط لنتيجة الفحص */
+      font-size: 12px;
       font-weight: 700;
       color: var(--muted);
       text-align: center;
       min-height: 18px;
-      font-family: inherit;
     }
 
-    .status.ok { color: #8affc1; }
-    .status.bad { color: #ff9aa5; }
+    .status.ok {
+      color: #8affc1;
+    }
+
+    .status.bad {
+      color: #ff9aa5;
+    }
+
+    .note {
+      margin-top: 8px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px dashed rgba(255, 255, 255, 0.14);
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+      display: none;
+      background: rgba(15, 11, 30, 0.6);
+    }
+
+    .context-wrap {
+      margin-top: 10px;
+      display: none;
+    }
+
+    .context-label {
+      font-size: 12px;
+      color: var(--muted);
+      margin: 0 0 6px 0;
+      font-weight: 700;
+    }
+
+    #contextText {
+      height: 62px;
+    }
+
+    .context-actions {
+      margin-top: 8px;
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-retry {
+      flex: 1;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: #ffffff;
+    }
+
+    .btn-retry:hover {
+      border-color: var(--accent);
+      box-shadow: 0 0 12px rgba(123, 92, 255, 0.25);
+      transform: translateY(-1px);
+    }
   </style>
 </head>
 
@@ -187,9 +214,23 @@
       </div>
 
       <div id="result" class="status"></div>
+
+      <div id="lowConfNote" class="note"></div>
+
+      <div id="contextWrap" class="context-wrap">
+        <p class="context-label">سياق اختياري (سطر/سطرين) لتحسين الدقة:</p>
+        <textarea id="contextText"
+          placeholder="مثال: المنشور ساخر / اقتباس من خبر / رد على صورة أو نقاش سابق"></textarea>
+
+        <div class="context-actions">
+          <button id="reclassifyBtn" class="btn-retry">إعادة التصنيف مع السياق</button>
+        </div>
+      </div>
+
     </div>
   </div>
 
-  <script src="popup.js"></script>
+  <script type="module" src="popup.js"></script>
 </body>
+
 </html>

@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "recharts": "^3.7.0",
     "twitter-api-v2": "^1.24.0"
   }
 }
