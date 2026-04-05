@@ -8,3 +8,4 @@ google-auth
 requests
 google-genai
 firebase-admin
+Flask-Limiter
