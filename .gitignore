@@ -20,4 +20,5 @@ Thumbs.db
 .pytest_cache/
 dist/
 build/
+
 coverage/

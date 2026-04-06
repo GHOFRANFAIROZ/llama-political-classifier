@@ -8,12 +8,12 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 import uuid
 import time
+
 # ================================
 # Import modules (B2 Architecture)
 # ================================
 from llm_utils import (
     build_prompt,
-    safe_json_parse,
     fallback_result,
     call_llm_with_backoff,
 )
@@ -47,19 +47,21 @@ limiter = Limiter(
     app=app,
     default_limits=["200 per hour"]
 )
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("anti-hate-api")
 
 load_dotenv()
+
 
 @app.before_request
 def start_timer():
     request.start_time = time.time()
     request.request_id = str(uuid.uuid4())[:8]
 
+
 @app.after_request
 def log_request(response):
-
     latency = int((time.time() - request.start_time) * 1000)
 
     logger.info(
@@ -70,6 +72,8 @@ def log_request(response):
     )
 
     return response
+
+
 # ================================
 # Gemini Settings
 # ================================
@@ -81,7 +85,8 @@ DEFAULT_MODEL = os.getenv("GEMINI_MODEL", "models/gemini-2.5-flash")
 if not GEMINI_API_KEY:
     logger.warning("⚠️ GEMINI_API_KEY is missing")
 
-gemini_client = genai.Client(api_key=GEMINI_API_KEY)
+gemini_client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
+
 
 # ================================
 # Sheets Settings (Public Mode ONLY)
@@ -111,16 +116,19 @@ COMMON_HEADERS = [
     "Context",
 ]
 
+
 # ================================
 # Firestore Setup
 # ================================
 from firebase_admin_setup import db
 from firebase_admin import firestore
 
+
 # ================================
 # Organizations Manager
 # ================================
 org_manager = OrgManager()
+
 
 # ================================
 # Hate Speech Categories
@@ -184,35 +192,69 @@ TEXT_LABEL_TO_ID = {
     "unknown": "NEUTRAL_OTHER",
 }
 
-PROMPT_VERSION = "v4"
+PROMPT_VERSION = "v5"
 
-def normalize_ai_response(ai_data, parse_err, request_id, path):
-    if parse_err:
-        logger.warning(
-            f"req={request_id} path={path} llm_parse_note={parse_err}"
-        )
 
+def normalize_ai_response(ai_data, request_id, path):
     if ai_data is None:
-        ai_data = fallback_result(parse_err)
+        ai_data = fallback_result("empty_ai_result")
 
     raw_label_id = str(ai_data.get("label_id") or "").strip().upper()
     if raw_label_id not in VALID_LABEL_IDS:
+        logger.warning(
+            f"req={request_id} path={path} invalid_label_id={raw_label_id} -> fallback_to_NEUTRAL_OTHER"
+        )
         raw_label_id = "NEUTRAL_OTHER"
 
     cat = CATEGORY_DEFINITIONS[raw_label_id]
 
+    parse_status = str(ai_data.get("parse_status") or "ok").strip()
+    fallback_used = bool(ai_data.get("fallback_used", False))
+    review_recommended = bool(ai_data.get("review_recommended", False))
+
     reason_ar = str(ai_data.get("reason_ar") or ai_data.get("reason") or "").strip()
-    if not reason_ar:
-        reason_ar = cat["tooltip_ar"]
+
+    if fallback_used:
+        if not reason_ar:
+            reason_ar = "تعذر استخراج تصنيف موثوق من النموذج. يُفضّل التحقق البشري."
+        review_recommended = True
+        classification_status = "needs_review"
+    else:
+        if not reason_ar:
+            reason_ar = cat["tooltip_ar"]
+        classification_status = "ok"
 
     try:
-        conf = float(ai_data.get("confidence_score", 0.50))
+        conf = float(ai_data.get("confidence_score", 0.0))
     except (TypeError, ValueError):
-        conf = 0.50
+        conf = 0.0
 
     conf = max(0.0, min(1.0, conf))
 
-    return raw_label_id, cat, reason_ar, conf
+    if raw_label_id == "NEUTRAL_OTHER" and fallback_used:
+        classification_status = "needs_review"
+        review_recommended = True
+        if conf > 0.20:
+            conf = 0.20
+
+    logger.info(
+        f"req={request_id} path={path} "
+        f"label_id={raw_label_id} confidence={conf} "
+        f"parse_status={parse_status} fallback_used={fallback_used} "
+        f"classification_status={classification_status}"
+    )
+
+    return {
+        "label_id": raw_label_id,
+        "category": cat,
+        "reason_ar": reason_ar,
+        "confidence_score": conf,
+        "parse_status": parse_status,
+        "fallback_used": fallback_used,
+        "review_recommended": review_recommended,
+        "classification_status": classification_status,
+    }
+
 
 def verify_org_token(org_id):
     token = request.headers.get("X-ORG-TOKEN")
@@ -228,6 +270,99 @@ def verify_org_token(org_id):
     data = doc.to_dict()
 
     return data.get("org_token") == token
+
+
+def try_public_sheet_write(
+    *,
+    mode,
+    source,
+    url,
+    text_for_sheet,
+    author,
+    post_time,
+    label_ar,
+    reason_ar,
+    dedupe_key,
+    confidence_score,
+    context,
+    request_id,
+):
+    """
+    Non-fatal Google Sheets writer for public mode.
+    Returns:
+      {
+        "sheet_title": str,
+        "sheet_status": "ok" | "duplicate" | "unavailable" | "write_failed",
+        "duplicate": bool
+      }
+    """
+    result = {
+        "sheet_title": "unavailable",
+        "sheet_status": "unavailable",
+        "duplicate": False,
+    }
+
+    try:
+        ss = get_spreadsheet(GOOGLE_CREDENTIALS_JSON, SHEET_URL, SPREADSHEET_ID)
+        ws = get_target_worksheet(
+            mode,
+            source,
+            ss,
+            EXTENSION_SHEET_NAME,
+            FACEBOOK_SHEET_NAME,
+            MANUAL_SHEET_NAME,
+            MOBILE_SHEET_NAME,
+            COMMON_HEADERS,
+        )
+
+        if ws is None:
+            logger.warning(f"req={request_id} sheets_unavailable_public_mode=1")
+            return result
+
+        result["sheet_title"] = ws.title
+
+        try:
+            if is_duplicate(ws, dedupe_key):
+                result["duplicate"] = True
+                result["sheet_status"] = "duplicate"
+                return result
+
+            ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            ws.append_row(
+                [
+                    ts,
+                    url,
+                    clean_text(text_for_sheet),
+                    author,
+                    post_time,
+                    label_ar,
+                    source,
+                    reason_ar,
+                    dedupe_key,
+                    confidence_score,
+                    context,
+                ]
+            )
+
+            result["sheet_status"] = "ok"
+            return result
+
+        except Exception as e:
+            logger.warning(
+                f"req={request_id} sheets_write_failed=1 error={e}",
+                exc_info=True
+            )
+            result["sheet_status"] = "write_failed"
+            return result
+
+    except Exception as e:
+        logger.warning(
+            f"req={request_id} sheets_nonfatal_error=1 error={e}",
+            exc_info=True
+        )
+        return result
+
+
 # ================================
 # HEALTH CHECK
 # ================================
@@ -245,11 +380,9 @@ def classify_v2():
     try:
         data = request.get_json(silent=True) or {}
 
-        # ORG MODE
         org_name = (data.get("org_name") or "").strip()
         org_metadata = org_manager.get_or_create_org(org_name) if org_name else None
 
-        # Inputs
         mode = data.get("mode", "extension")
         source = data.get("source", "extension")
         text = data.get("text", "")
@@ -268,27 +401,33 @@ def classify_v2():
         if not raw_input:
             return jsonify({"error": "Empty input"}), 400
 
-        # Prompt
         prompt_input = raw_input + (f"\n\n[UserContext]\n{context}" if context else "")
         prompt = build_prompt(prompt_input)
 
-        ai_content = call_llm_with_backoff(prompt, DEFAULT_MODEL)
-        ai_data, parse_err = safe_json_parse(ai_content)
+        ai_data = call_llm_with_backoff(prompt, DEFAULT_MODEL)
 
-        raw_label_id, cat, reason_ar, conf = normalize_ai_response(
+        normalized = normalize_ai_response(
             ai_data=ai_data,
-            parse_err=parse_err,
             request_id=request.request_id,
             path=request.path,
         )
-        # Text for sheet
+
+        raw_label_id = normalized["label_id"]
+        cat = normalized["category"]
+        reason_ar = normalized["reason_ar"]
+        conf = normalized["confidence_score"]
+        parse_status = normalized["parse_status"]
+        fallback_used = normalized["fallback_used"]
+        review_recommended = normalized["review_recommended"]
+        classification_status = normalized["classification_status"]
+
         text_for_sheet = text + (f"\n\n[UserContext]\n{context}" if context else "")
-
         dedupe_key = make_dedupe_key(source, url, text)
-        duplicate = False
-        sheet_title = "unknown"
 
-        # ORG MODE (Firestore only)
+        duplicate = False
+        sheet_title = "org_firestore_only" if org_metadata else "unavailable"
+        sheet_status = "not_applicable" if org_metadata else "unavailable"
+
         if org_metadata:
             save_org_report(
                 org_metadata["org_id"],
@@ -303,44 +442,31 @@ def classify_v2():
                     "source": source,
                     "context": context,
                     "dedupe_key": dedupe_key,
+                    "parse_status": parse_status,
+                    "fallback_used": fallback_used,
+                    "review_recommended": review_recommended,
+                    "classification_status": classification_status,
                 },
             )
-
-        # PUBLIC MODE
         else:
-            ss = get_spreadsheet(GOOGLE_CREDENTIALS_JSON, SHEET_URL, SPREADSHEET_ID)
-            ws = get_target_worksheet(
-                mode,
-                source,
-                ss,
-                EXTENSION_SHEET_NAME,
-                FACEBOOK_SHEET_NAME,
-                MANUAL_SHEET_NAME,
-                MOBILE_SHEET_NAME,
-                COMMON_HEADERS,
+            sheet_result = try_public_sheet_write(
+                mode=mode,
+                source=source,
+                url=url,
+                text_for_sheet=text_for_sheet,
+                author=author,
+                post_time=post_time,
+                label_ar=cat["label_ar"],
+                reason_ar=reason_ar,
+                dedupe_key=dedupe_key,
+                confidence_score=conf,
+                context=context,
+                request_id=request.request_id,
             )
 
-            sheet_title = ws.title
-
-            if is_duplicate(ws, dedupe_key):
-                duplicate = True
-            else:
-                ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                ws.append_row(
-                    [
-                        ts,
-                        url,
-                        clean_text(text_for_sheet),
-                        author,
-                        post_time,
-                        cat["label_ar"],
-                        source,
-                        reason_ar,
-                        dedupe_key,
-                        conf,
-                        context,
-                    ]
-                )
+            duplicate = sheet_result["duplicate"]
+            sheet_title = sheet_result["sheet_title"]
+            sheet_status = sheet_result["sheet_status"]
 
             save_public_report(
                 {
@@ -354,6 +480,11 @@ def classify_v2():
                     "source": source,
                     "context": context,
                     "dedupe_key": dedupe_key,
+                    "parse_status": parse_status,
+                    "fallback_used": fallback_used,
+                    "review_recommended": review_recommended,
+                    "classification_status": classification_status,
+                    "sheet_status": sheet_status,
                 }
             )
 
@@ -369,9 +500,14 @@ def classify_v2():
                 "duplicate": duplicate,
                 "success": True,
                 "sheet": sheet_title,
+                "sheet_status": sheet_status,
                 "org_id": org_metadata["org_id"] if org_metadata else None,
                 "label": cat["label_ar"],
                 "reason": reason_ar,
+                "parse_status": parse_status,
+                "fallback_used": fallback_used,
+                "review_recommended": review_recommended,
+                "classification_status": classification_status,
             }
         ), 200
 
@@ -414,22 +550,30 @@ def mobile_share():
         prompt_input = raw_input + (f"\n\n[UserContext]\n{context}" if context else "")
         prompt = build_prompt(prompt_input)
 
-        ai_content = call_llm_with_backoff(prompt, DEFAULT_MODEL)
-        ai_data, parse_err = safe_json_parse(ai_content)
+        ai_data = call_llm_with_backoff(prompt, DEFAULT_MODEL)
 
-        raw_label_id, cat, reason_ar, conf = normalize_ai_response(
+        normalized = normalize_ai_response(
             ai_data=ai_data,
-            parse_err=parse_err,
             request_id=request.request_id,
             path=request.path,
         )
 
+        raw_label_id = normalized["label_id"]
+        cat = normalized["category"]
+        reason_ar = normalized["reason_ar"]
+        conf = normalized["confidence_score"]
+        parse_status = normalized["parse_status"]
+        fallback_used = normalized["fallback_used"]
+        review_recommended = normalized["review_recommended"]
+        classification_status = normalized["classification_status"]
+
         text_for_sheet = text + (f"\n\n[UserContext]\n{context}" if context else "")
-
         dedupe_key = make_dedupe_key(source, url, text)
-        duplicate = False
 
-        # ORG MODE
+        duplicate = False
+        sheet_title = "org_firestore_only" if org_metadata else "unavailable"
+        sheet_status = "not_applicable" if org_metadata else "unavailable"
+
         if org_metadata:
             save_org_report(
                 org_metadata["org_id"],
@@ -444,42 +588,31 @@ def mobile_share():
                     "source": source,
                     "context": context,
                     "dedupe_key": dedupe_key,
+                    "parse_status": parse_status,
+                    "fallback_used": fallback_used,
+                    "review_recommended": review_recommended,
+                    "classification_status": classification_status,
                 },
             )
-
-        # PUBLIC MODE
         else:
-            ss = get_spreadsheet(GOOGLE_CREDENTIALS_JSON, SHEET_URL, SPREADSHEET_ID)
-            ws = get_target_worksheet(
-                mode,
-                source,
-                ss,
-                EXTENSION_SHEET_NAME,
-                FACEBOOK_SHEET_NAME,
-                MANUAL_SHEET_NAME,
-                MOBILE_SHEET_NAME,
-                COMMON_HEADERS,
+            sheet_result = try_public_sheet_write(
+                mode=mode,
+                source=source,
+                url=url,
+                text_for_sheet=text_for_sheet,
+                author=author,
+                post_time=post_time,
+                label_ar=cat["label_ar"],
+                reason_ar=reason_ar,
+                dedupe_key=dedupe_key,
+                confidence_score=conf,
+                context=context,
+                request_id=request.request_id,
             )
 
-            if is_duplicate(ws, dedupe_key):
-                duplicate = True
-            else:
-                ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                ws.append_row(
-                    [
-                        ts,
-                        url,
-                        clean_text(text_for_sheet),
-                        author,
-                        post_time,
-                        cat["label_ar"],
-                        source,
-                        reason_ar,
-                        dedupe_key,
-                        conf,
-                        context,
-                    ]
-                )
+            duplicate = sheet_result["duplicate"]
+            sheet_title = sheet_result["sheet_title"]
+            sheet_status = sheet_result["sheet_status"]
 
             save_public_report(
                 {
@@ -493,13 +626,18 @@ def mobile_share():
                     "source": source,
                     "context": context,
                     "dedupe_key": dedupe_key,
+                    "parse_status": parse_status,
+                    "fallback_used": fallback_used,
+                    "review_recommended": review_recommended,
+                    "classification_status": classification_status,
+                    "sheet_status": sheet_status,
                 }
             )
 
         msg_lines = [f"🧠 التصنيف: {cat['label_ar']}"]
         if reason_ar:
             msg_lines.append(f"📝 السبب: {reason_ar}")
-        if conf < 0.45:
+        if review_recommended or conf < 0.45:
             msg_lines.append("🔎 يُفضّل التحقق البشري لهذه الحالة.")
 
         return jsonify(
@@ -515,7 +653,13 @@ def mobile_share():
                 "message_ar": "\n".join(msg_lines),
                 "source": source,
                 "client": client,
+                "sheet": sheet_title,
+                "sheet_status": sheet_status,
                 "org_id": org_metadata["org_id"] if org_metadata else None,
+                "parse_status": parse_status,
+                "fallback_used": fallback_used,
+                "review_recommended": review_recommended,
+                "classification_status": classification_status,
             }
         ), 200
 
@@ -532,55 +676,47 @@ def save_record():
     try:
         data = request.get_json() or {}
 
-        # 1) Detect Org Mode
         org_id = data.get("org_id") or data.get("org_token")
 
-        # Build searchable_text
         clean_text_val = (data.get("raw_text") or data.get("text") or "").lower()
         clean_reason = (data.get("reason_ar") or data.get("result_reason") or "").lower()
         data["searchable_text"] = f"{clean_text_val} {clean_reason}".strip()
 
-        # 2) ORG MODE  → Firestore
         if org_id:
             ok = save_org_report(org_id, data)
-            return jsonify({"ok": ok, "mode": "org"}), 200
+            return jsonify({
+                "ok": ok,
+                "mode": "org",
+                "sheet": "org_firestore_only",
+                "sheet_status": "not_applicable",
+            }), 200
 
-        # 3) PUBLIC MODE → Google Sheets + Firestore Public
-        else:
-            # Save to Firestore public collection
-            save_public_report(data)
+        save_public_report(data)
 
-            # Save to Google Sheets
-            ss = get_spreadsheet(GOOGLE_CREDENTIALS_JSON, SHEET_URL, SPREADSHEET_ID)
-            ws = get_target_worksheet(
-                "extension",
-                data.get("source", "extension"),
-                ss,
-                EXTENSION_SHEET_NAME,
-                FACEBOOK_SHEET_NAME,
-                MANUAL_SHEET_NAME,
-                MOBILE_SHEET_NAME,
-                COMMON_HEADERS,
-            )
+        sheet_result = try_public_sheet_write(
+            mode="extension",
+            source=data.get("source", "extension"),
+            url=data.get("url", ""),
+            text_for_sheet=data.get("raw_text") or data.get("text") or "",
+            author=data.get("author", "Unknown"),
+            post_time=data.get("post_time", ""),
+            label_ar=data.get("result_label", ""),
+            reason_ar=data.get("result_reason", ""),
+            dedupe_key=data.get("dedupe_key", ""),
+            confidence_score=data.get("confidence", ""),
+            context=data.get("context", ""),
+            request_id=getattr(request, "request_id", "unknown"),
+        )
 
-            ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            ws.append_row(
-                [
-                    ts,
-                    data.get("url", ""),
-                    data.get("raw_text") or data.get("text") or "",
-                    data.get("author", "Unknown"),
-                    data.get("post_time", ""),
-                    data.get("result_label", ""),
-                    data.get("source", ""),
-                    data.get("result_reason", ""),
-                    data.get("dedupe_key", ""),
-                    data.get("confidence", ""),
-                    data.get("context", ""),
-                ]
-            )
-
-            return jsonify({"ok": True, "mode": "public"}), 200
+        return jsonify(
+            {
+                "ok": True,
+                "mode": "public",
+                "sheet": sheet_result["sheet_title"],
+                "sheet_status": sheet_result["sheet_status"],
+                "duplicate": sheet_result["duplicate"],
+            }
+        ), 200
 
     except Exception as e:
         logger.error(f"[SAVE_RECORD ERROR] {e}", exc_info=True)
@@ -620,6 +756,7 @@ def get_org_trends(org_id):
     except Exception as e:
         logger.error(f"[TRENDS ERROR] {e}", exc_info=True)
         return jsonify({"error": "Internal server error"}), 500
+
 
 @app.route("/org/<org_id>/wordcloud", methods=["GET"])
 def get_org_wordcloud(org_id):
@@ -701,10 +838,10 @@ def search_org_reports(org_id):
         logger.error(f"[SEARCH ERROR] {e}", exc_info=True)
         return jsonify({"error": "Internal server error"}), 500
 
-# ================================
-# SIMPLE SEARCH API (Sample Data)
-# ================================
 
+# ================================
+# SIMPLE SEARCH API (Public)
+# ================================
 @limiter.limit("60 per minute")
 @app.route("/api/reports/search", methods=["GET"])
 def search_reports():
@@ -727,16 +864,18 @@ def search_reports():
             limit=limit,
             offset=offset,
             platform=platform or None,
-            category=classification or None,   # classification -> label_id
+            category=classification or None,
             date_range=date_range,
             sort="desc",
         )
 
         return jsonify(data), 200
-    
+
     except Exception as e:
         logger.error(f"[PUBLIC SEARCH ERROR] {e}", exc_info=True)
         return jsonify({"error": "Internal server error"}), 500
+
+
 # ================================
 # ORGS LIST (for dashboard)
 # ================================
@@ -759,12 +898,12 @@ def list_organizations():
     }
     """
     try:
-        # ملاحظة: لازم تكون ضفت دالة list_orgs في org_manager.py
         orgs = org_manager.list_orgs()
         return jsonify({"results": orgs}), 200
     except Exception as e:
         logger.error(f"[ORGS ERROR] {e}", exc_info=True)
         return jsonify({"error": "Internal server error"}), 500
+
 
 # ==============================
 # RUN SERVER
