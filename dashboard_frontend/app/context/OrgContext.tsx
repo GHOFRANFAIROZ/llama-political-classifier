@@ -20,11 +20,11 @@ export type Org = {
 
 type OrgContextValue = {
   currentOrg: Org | null;
-  setCurrentOrg: (org: Org) => void;
+  setCurrentOrg: (org: Org | null) => void;
   orgs: Org[];
 
   orgsLoading: boolean;
-  orgsSource: "api" | "fallback";
+  orgsSource: "api" | "empty";
   orgsError: string | null;
 
   lastSyncedAt: string | null;
@@ -34,13 +34,6 @@ type OrgContextValue = {
 const OrgContext = createContext<OrgContextValue | undefined>(undefined);
 
 const LOCAL_STORAGE_KEY = "anti_hate_current_org_id";
-
-const FALLBACK_ORGS: Org[] = [
-  { id: "demo-org-id", slug: "metro-newsroom", name: "Metro Newsroom", plan: "Pro", country: "LB" },
-  { id: "inv-collective-id", slug: "investigative-collective", name: "Investigative Collective", plan: "Pro" },
-  { id: "digital-rights-id", slug: "digital-rights-watch", name: "Digital Rights Watch", plan: "Free" },
-  { id: "local-radio-id", slug: "local-radio-network", name: "Local Radio Network", plan: "Enterprise" },
-];
 
 function safeGetLS(key: string): string | null {
   try {
@@ -58,16 +51,24 @@ function safeSetLS(key: string, value: string) {
   }
 }
 
+function safeRemoveLS(key: string) {
+  try {
+    window.localStorage.removeItem(key);
+  } catch {
+    // ignore
+  }
+}
+
 function ensureSlug(o: Org) {
   return o.slug || o.id.replaceAll("_", "-");
 }
 
 export function OrgProvider({ children }: { children: ReactNode }) {
-  const [orgs, setOrgs] = useState<Org[]>(FALLBACK_ORGS);
+  const [orgs, setOrgs] = useState<Org[]>([]);
   const [currentOrg, setCurrentOrgState] = useState<Org | null>(null);
 
   const [orgsLoading, setOrgsLoading] = useState(true);
-  const [orgsSource, setOrgsSource] = useState<"api" | "fallback">("fallback");
+  const [orgsSource, setOrgsSource] = useState<"api" | "empty">("empty");
   const [orgsError, setOrgsError] = useState<string | null>(null);
 
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
@@ -78,31 +79,36 @@ export function OrgProvider({ children }: { children: ReactNode }) {
 
     try {
       const res = await fetch("/api/orgs", { cache: "no-store" });
-      if (!res.ok) throw new Error(`GET /api/orgs failed: ${res.status}`);
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error || `GET /api/orgs failed: ${res.status}`);
+      }
 
       const data = await res.json();
+
       const apiOrgs: Org[] = Array.isArray(data?.orgs)
-        ? data.orgs.map((o: any) => ({
-            id: String(o.id),
-            slug: (o.slug as string | undefined) ?? undefined,
-            name: String(o.name ?? ""),
-            plan: (o.plan ?? undefined) as Org["plan"] | undefined,
-            country: (o.country ?? undefined) as string | undefined,
-          }))
+        ? data.orgs
+            .map((o: any) => ({
+              id: String(o.id ?? "").trim(),
+              slug: (o.slug as string | undefined) ?? undefined,
+              name: String(o.name ?? "").trim(),
+              plan: (o.plan ?? undefined) as Org["plan"] | undefined,
+              country: (o.country ?? undefined) as string | undefined,
+            }))
+            .filter((o: Org) => o.id && o.name)
         : [];
 
-      if (apiOrgs.length > 0) {
-        setOrgs(apiOrgs);
-        setOrgsSource("api");
-        setLastSyncedAt(new Date().toISOString());
-      } else {
-        setOrgsSource("fallback");
-        setOrgsError("API returned empty org list; using fallback.");
-      }
+      setOrgs(apiOrgs);
+      setOrgsSource(apiOrgs.length > 0 ? "api" : "empty");
+      setLastSyncedAt(new Date().toISOString());
     } catch (e: any) {
-      setOrgsSource("fallback");
+      setOrgs([]);
+      setCurrentOrgState(null);
+      setOrgsSource("empty");
       setOrgsError(e?.message ?? "Failed to load orgs");
-      // keep fallback
+      setLastSyncedAt(null);
+      safeRemoveLS(LOCAL_STORAGE_KEY);
     } finally {
       setOrgsLoading(false);
     }
@@ -114,8 +120,10 @@ export function OrgProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (orgsLoading) return;
+
     if (!orgs.length) {
       setCurrentOrgState(null);
+      safeRemoveLS(LOCAL_STORAGE_KEY);
       return;
     }
 
@@ -130,7 +138,13 @@ export function OrgProvider({ children }: { children: ReactNode }) {
     safeSetLS(LOCAL_STORAGE_KEY, normalized.id);
   }, [orgsLoading, orgs]);
 
-  const setCurrentOrg = useCallback((org: Org) => {
+  const setCurrentOrg = useCallback((org: Org | null) => {
+    if (!org) {
+      setCurrentOrgState(null);
+      safeRemoveLS(LOCAL_STORAGE_KEY);
+      return;
+    }
+
     const normalized: Org = { ...org, slug: ensureSlug(org) };
     setCurrentOrgState(normalized);
     safeSetLS(LOCAL_STORAGE_KEY, normalized.id);
@@ -151,7 +165,16 @@ export function OrgProvider({ children }: { children: ReactNode }) {
       lastSyncedAt,
       refreshOrgs,
     }),
-    [currentOrg, setCurrentOrg, orgs, orgsLoading, orgsSource, orgsError, lastSyncedAt, refreshOrgs]
+    [
+      currentOrg,
+      setCurrentOrg,
+      orgs,
+      orgsLoading,
+      orgsSource,
+      orgsError,
+      lastSyncedAt,
+      refreshOrgs,
+    ]
   );
 
   return <OrgContext.Provider value={value}>{children}</OrgContext.Provider>;

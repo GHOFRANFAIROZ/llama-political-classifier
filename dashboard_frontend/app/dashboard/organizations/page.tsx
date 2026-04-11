@@ -20,10 +20,8 @@ type OrgRow = Org & {
   reportsLast7d?: number | null;
   totalReports?: number | null;
   activeUsers?: number | null;
-
   lastActive?: string | null;
   primaryLanguage?: string | null;
-
   _slugForRoute: string;
   _isActive: boolean;
 };
@@ -34,26 +32,22 @@ function PlanBadge({ plan }: { plan?: OrgPlan }) {
 
   if (!plan || plan === "Free") {
     return (
-      <span
-        className={`${base} border-slate-500/50 text-slate-300 bg-slate-900/40`}
-      >
+      <span className={`${base} border-slate-500/50 text-slate-300 bg-slate-900/40`}>
         Free
       </span>
     );
   }
+
   if (plan === "Pro") {
     return (
-      <span
-        className={`${base} border-purple-400/60 text-purple-100 bg-purple-900/30`}
-      >
+      <span className={`${base} border-purple-400/60 text-purple-100 bg-purple-900/30`}>
         Pro
       </span>
     );
   }
+
   return (
-    <span
-      className={`${base} border-amber-300/70 text-amber-100 bg-amber-900/30`}
-    >
+    <span className={`${base} border-amber-300/70 text-amber-100 bg-amber-900/30`}>
       Enterprise
     </span>
   );
@@ -76,25 +70,37 @@ function SkeletonLine({ w = "w-10" }: { w?: string }) {
   return <div className={`h-5 ${w} bg-purple-900/40 rounded animate-pulse`} />;
 }
 
+function SummaryCard({
+  label,
+  value,
+  subtext,
+}: {
+  label: string;
+  value: string | number;
+  subtext?: string;
+}) {
+  return (
+    <div className="bg-[#120F18] border border-purple-900/60 rounded-2xl p-4 shadow-[0_0_18px_rgba(176,92,255,0.18)]">
+      <div className="text-xs text-purple-400 uppercase tracking-wide">{label}</div>
+      <div className="mt-2 text-2xl font-bold text-purple-100">{value}</div>
+      {subtext ? <div className="mt-1 text-xs text-purple-500">{subtext}</div> : null}
+    </div>
+  );
+}
+
 export default function OrganizationsPage() {
   const router = useRouter();
   const { orgs, currentOrg, setCurrentOrg, orgsLoading, orgsSource, orgsError } =
     useOrg();
 
-  // UI controls
   const [q, setQ] = useState("");
   const [sortKey, setSortKey] = useState<"name" | "total" | "last7d">("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
-  // Stats
-  const [statsByOrgId, setStatsByOrgId] = useState<Record<string, OrgStats>>(
-    {}
-  );
+  const [statsByOrgId, setStatsByOrgId] = useState<Record<string, OrgStats>>({});
   const [statsLoading, setStatsLoading] = useState(false);
   const [statsError, setStatsError] = useState<string | null>(null);
-  const [statsLastSyncedAt, setStatsLastSyncedAt] = useState<string | null>(
-    null
-  );
+  const [statsLastSyncedAt, setStatsLastSyncedAt] = useState<string | null>(null);
 
   const fetchStats = async (signal?: AbortSignal) => {
     if (!orgs?.length) return;
@@ -115,13 +121,14 @@ export default function OrganizationsPage() {
           }
 
           const json = (await res.json()) as Partial<OrgStats>;
+
           const stats: OrgStats = {
             totalReports: Number(json.totalReports ?? 0),
             last7dReports: Number(json.last7dReports ?? 0),
             activeUsers: json.activeUsers == null ? null : Number(json.activeUsers),
             hateSpeechRatio: Number(json.hateSpeechRatio ?? 0),
-            mostToxicPlatform: (json.mostToxicPlatform ?? null) as any,
-            timeToFirstReviewHours: (json.timeToFirstReviewHours ?? null) as any,
+            mostToxicPlatform: (json.mostToxicPlatform ?? null) as string | null,
+            timeToFirstReviewHours: (json.timeToFirstReviewHours ?? null) as number | null,
           };
 
           return { orgId: o.id, stats };
@@ -140,19 +147,16 @@ export default function OrganizationsPage() {
       setStatsLastSyncedAt(new Date().toISOString());
 
       if (failed) {
-        setStatsError(
-          `Some org stats failed to load (${failed}/${settled.length}).`
-        );
+        setStatsError(`Some organization stats failed to load (${failed}/${settled.length}).`);
       }
     } catch (e: any) {
       if (e?.name === "AbortError") return;
-      setStatsError(e?.message ?? "Failed to load org stats");
+      setStatsError(e?.message ?? "Failed to load organization stats");
     } finally {
       setStatsLoading(false);
     }
   };
 
-  // auto-load stats
   useEffect(() => {
     if (orgsLoading) return;
     if (!orgs?.length) return;
@@ -175,11 +179,9 @@ export default function OrganizationsPage() {
         slug: slugForRoute,
         _slugForRoute: slugForRoute,
         _isActive: isActive,
-
         reportsLast7d: stats ? stats.last7dReports : null,
         totalReports: stats ? stats.totalReports : null,
         activeUsers: stats ? stats.activeUsers : null,
-
         lastActive: null,
         primaryLanguage: null,
       };
@@ -202,12 +204,10 @@ export default function OrganizationsPage() {
 
     list.sort((a, b) => {
       if (sortKey === "name") return a.name.localeCompare(b.name) * dir;
-      if (sortKey === "total")
-        return ((a.totalReports ?? -1) - (b.totalReports ?? -1)) * dir;
+      if (sortKey === "total") return ((a.totalReports ?? -1) - (b.totalReports ?? -1)) * dir;
       return ((a.reportsLast7d ?? -1) - (b.reportsLast7d ?? -1)) * dir;
     });
 
-    // Active org pinned to top
     return [
       ...list.filter((x) => x._isActive),
       ...list.filter((x) => !x._isActive),
@@ -229,12 +229,6 @@ export default function OrganizationsPage() {
     return { totalReports, last7d, users };
   }, [rows, statsByOrgId]);
 
-  const sourceLabel = orgsLoading
-    ? "Loading…"
-    : orgsSource === "api"
-      ? "API / Firestore"
-      : "Fallback (demo)";
-
   const handleRefreshStats = async () => {
     const controller = new AbortController();
     await fetchStats(controller.signal);
@@ -242,29 +236,20 @@ export default function OrganizationsPage() {
 
   return (
     <div className="space-y-8">
-      {/* Header */}
       <div className="flex flex-col gap-4">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="text-4xl font-bold text-purple-100">Organizations</h1>
             <p className="text-purple-400 mt-2 max-w-3xl">
-              Manage the newsrooms and organizations connected to Anti-Hate Monitor.
-              Data is loaded via <code>/api/orgs</code> (Firestore organizations collection).
+              Browse connected workspaces, review activity levels, and open each
+              organization’s dashboard context.
             </p>
 
             <div className="mt-3 flex flex-wrap items-center gap-3">
               <span className="text-xs text-purple-500">
-                Source:&nbsp;
-                <span
-                  className={`font-semibold ${
-                    orgsSource === "api"
-                      ? "text-emerald-300"
-                      : orgsLoading
-                        ? "text-purple-200"
-                        : "text-amber-300"
-                  }`}
-                >
-                  {sourceLabel}
+                Source:{" "}
+                <span className="font-semibold text-emerald-300">
+                  {orgsLoading ? "Loading…" : orgsSource === "api" ? "API / Firestore" : "Unavailable"}
                 </span>
               </span>
 
@@ -278,7 +263,7 @@ export default function OrganizationsPage() {
 
               {statsLastSyncedAt ? (
                 <span className="text-xs text-purple-500">
-                  Stats synced:&nbsp;
+                  Stats synced:{" "}
                   <span className="text-purple-200">
                     {formatDateTime(statsLastSyncedAt)}
                   </span>
@@ -286,16 +271,12 @@ export default function OrganizationsPage() {
               ) : null}
             </div>
 
-            {currentOrg && (
+            {currentOrg ? (
               <p className="text-xs text-purple-500 mt-2">
                 Active workspace:{" "}
-                <span className="font-semibold text-purple-200">
-                  {currentOrg.name}
-                </span>{" "}
-                – org_id:{" "}
-                <span className="font-mono text-purple-300">{currentOrg.id}</span>
+                <span className="font-semibold text-purple-200">{currentOrg.name}</span>
               </p>
-            )}
+            ) : null}
           </div>
 
           <div className="flex items-center gap-3">
@@ -304,30 +285,27 @@ export default function OrganizationsPage() {
               whileTap={{ scale: 0.98 }}
               onClick={handleRefreshStats}
               disabled={orgsLoading || orgsSource !== "api"}
-              className="px-4 py-2 rounded-xl bg-purple-600/80 border border-purple-400/30 text-white text-sm
-                         hover:bg-purple-600 disabled:opacity-60 transition shadow-[0_0_18px_rgba(176,92,255,0.25)]"
+              className="px-4 py-2 rounded-xl bg-purple-600/80 border border-purple-400/30 text-white text-sm hover:bg-purple-600 disabled:opacity-60 transition shadow-[0_0_18px_rgba(176,92,255,0.25)]"
             >
               Refresh stats
             </motion.button>
           </div>
         </div>
 
-        {/* Search + Sort */}
         <div className="flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
           <div className="flex-1">
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Search by name, slug, or org_id…"
-              className="w-full bg-[#120F18] border border-purple-900/50 rounded-2xl px-4 py-2 text-sm
-                         text-purple-200 placeholder-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
+              placeholder="Search by organization name, slug, or org ID…"
+              className="w-full bg-[#120F18] border border-purple-900/50 rounded-2xl px-4 py-2 text-sm text-purple-200 placeholder-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
             />
           </div>
 
           <div className="flex items-center gap-2">
             <select
               value={sortKey}
-              onChange={(e) => setSortKey(e.target.value as any)}
+              onChange={(e) => setSortKey(e.target.value as "name" | "total" | "last7d")}
               className="bg-[#120F18] border border-purple-900/50 rounded-xl px-3 py-2 text-xs text-purple-200"
             >
               <option value="name">Sort: Name</option>
@@ -337,7 +315,7 @@ export default function OrganizationsPage() {
 
             <select
               value={sortDir}
-              onChange={(e) => setSortDir(e.target.value as any)}
+              onChange={(e) => setSortDir(e.target.value as "asc" | "desc")}
               className="bg-[#120F18] border border-purple-900/50 rounded-xl px-3 py-2 text-xs text-purple-200"
             >
               <option value="asc">Asc</option>
@@ -347,61 +325,36 @@ export default function OrganizationsPage() {
         </div>
       </div>
 
-      {/* Summary cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-[#120F18] border border-purple-900/60 rounded-2xl p-4 shadow-[0_0_18px_rgba(176,92,255,0.25)]">
-          <div className="text-xs text-purple-400 uppercase tracking-wide">
-            Organizations
-          </div>
-          <div className="mt-2 text-2xl font-bold text-purple-100">
-            {orgsLoading ? "…" : orgs.length}
-          </div>
-          <div className="mt-1 text-xs text-purple-400">Workspaces connected</div>
-        </div>
-
-        <div className="bg-[#120F18] border border-purple-900/60 rounded-2xl p-4 shadow-[0_0_18px_rgba(176,92,255,0.25)]">
-          <div className="text-xs text-purple-400 uppercase tracking-wide">
-            Reports (last 7 days)
-          </div>
-          <div className="mt-2 text-2xl font-bold text-purple-100">
-            {statsLoading ? "…" : totals.last7d ?? "—"}
-          </div>
-          <div className="mt-1 text-xs text-purple-400">From /org/&lt;id&gt;/stats</div>
-        </div>
-
-        <div className="bg-[#120F18] border border-purple-900/60 rounded-2xl p-4 shadow-[0_0_18px_rgba(176,92,255,0.25)]">
-          <div className="text-xs text-purple-400 uppercase tracking-wide">
-            Total reports
-          </div>
-          <div className="mt-2 text-2xl font-bold text-purple-100">
-            {statsLoading ? "…" : totals.totalReports ?? "—"}
-          </div>
-          <div className="mt-1 text-xs text-purple-400">Aggregated</div>
-        </div>
-
-        <div className="bg-[#120F18] border border-purple-900/60 rounded-2xl p-4 shadow-[0_0_18px_rgba(176,92,255,0.25)]">
-          <div className="text-xs text-purple-400 uppercase tracking-wide">
-            Active users
-          </div>
-          <div className="mt-2 text-2xl font-bold text-purple-100">
-            {statsLoading ? "…" : totals.users ?? "—"}
-          </div>
-          <div className="mt-1 text-xs text-purple-400">If tracked</div>
-        </div>
+        <SummaryCard
+          label="Organizations"
+          value={orgsLoading ? "…" : orgs.length}
+          subtext="Connected workspaces"
+        />
+        <SummaryCard
+          label="Reports (last 7 days)"
+          value={statsLoading ? "…" : totals.last7d ?? "—"}
+          subtext="Across all organizations"
+        />
+        <SummaryCard
+          label="Total reports"
+          value={statsLoading ? "…" : totals.totalReports ?? "—"}
+          subtext="Aggregated volume"
+        />
+        <SummaryCard
+          label="Active users"
+          value={statsLoading ? "…" : totals.users ?? "—"}
+          subtext="If tracked"
+        />
       </div>
 
-      {/* Table */}
       <div className="bg-[#120F18] border border-purple-900/60 rounded-2xl p-5 shadow-[0_0_18px_rgba(176,92,255,0.25)]">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-purple-100">
             Organizations overview
           </h2>
           <span className="text-xs text-purple-400">
-            {orgsLoading
-              ? "Loading from /api/orgs…"
-              : orgsSource === "api"
-                ? "Live from Firestore."
-                : "Backend unavailable — showing demo."}
+            Click any row to open that organization’s dashboard view.
           </span>
         </div>
 
@@ -436,8 +389,9 @@ export default function OrganizationsPage() {
                 filteredSorted.map((org) => (
                   <tr
                     key={org.id}
-                    className={`border-b border-purple-900/40 last:border-0 transition cursor-pointer
-                      ${org._isActive ? "bg-purple-900/15" : "hover:bg-purple-900/10"}`}
+                    className={`border-b border-purple-900/40 last:border-0 transition cursor-pointer ${
+                      org._isActive ? "bg-purple-900/15" : "hover:bg-purple-900/10"
+                    }`}
                     onClick={() => {
                       setCurrentOrg(org);
                       router.push(`/dashboard/organizations/${org._slugForRoute}`);
@@ -506,9 +460,9 @@ export default function OrganizationsPage() {
             <span className="text-purple-200 font-semibold">
               {filteredSorted.length}
             </span>{" "}
-            org(s)
+            organization(s)
           </span>
-          <span>Tip: اضغطي على أي صف لفتح dashboard تبعه</span>
+          <span>اضغط على أي صف لفتح صفحة المنظمة</span>
         </div>
       </div>
     </div>

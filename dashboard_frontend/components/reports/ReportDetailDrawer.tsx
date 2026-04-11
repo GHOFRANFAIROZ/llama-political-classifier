@@ -6,7 +6,6 @@ import {
   XMarkIcon,
   ArrowTopRightOnSquareIcon,
   ClipboardIcon,
-  CheckIcon,
   ArrowDownTrayIcon,
   ShareIcon,
   LinkIcon,
@@ -14,10 +13,10 @@ import {
   ShieldCheckIcon,
   FireIcon,
 } from "@heroicons/react/24/outline";
-import { Report } from "./ReportsTable";
+import type { ReportItem } from "@/app/lib/reports/types";
 
 type ReportDetailDrawerProps = {
-  report: Report | null;
+  report: ReportItem | null;
   isOpen: boolean;
   onClose: () => void;
 };
@@ -37,6 +36,7 @@ function getRisk(score: number): Risk {
       className: "bg-red-500/10 text-red-300 border-red-500/40",
       icon: <FireIcon className="w-4 h-4" />,
     };
+
   if (score >= 60)
     return {
       label: "High",
@@ -44,6 +44,7 @@ function getRisk(score: number): Risk {
       className: "bg-orange-500/10 text-orange-300 border-orange-500/40",
       icon: <ExclamationTriangleIcon className="w-4 h-4" />,
     };
+
   if (score >= 40)
     return {
       label: "Medium",
@@ -51,6 +52,7 @@ function getRisk(score: number): Risk {
       className: "bg-yellow-500/10 text-yellow-200 border-yellow-500/40",
       icon: <ShieldCheckIcon className="w-4 h-4" />,
     };
+
   return {
     label: "Low",
     tone: "green",
@@ -109,6 +111,32 @@ function clamp0to100(n: number) {
   return Math.max(0, Math.min(100, Math.round(n)));
 }
 
+function MetaChip({
+  label,
+  value,
+  tone = "default",
+}: {
+  label: string;
+  value: string;
+  tone?: "default" | "warn" | "danger" | "ok";
+}) {
+  const toneClass =
+    tone === "warn"
+      ? "bg-yellow-500/10 text-yellow-200 border-yellow-500/30"
+      : tone === "danger"
+      ? "bg-red-500/10 text-red-300 border-red-500/30"
+      : tone === "ok"
+      ? "bg-emerald-500/10 text-emerald-200 border-emerald-500/30"
+      : "bg-white/5 text-gray-200 border-white/10";
+
+  return (
+    <div className={`rounded-xl border px-3 py-2 ${toneClass}`}>
+      <p className="text-[10px] uppercase tracking-wide opacity-70">{label}</p>
+      <p className="text-sm font-medium break-words">{value || "—"}</p>
+    </div>
+  );
+}
+
 export default function ReportDetailDrawer({
   report,
   isOpen,
@@ -118,7 +146,6 @@ export default function ReportDetailDrawer({
     null
   );
 
-  // ESC to close
   useEffect(() => {
     if (!isOpen) return;
     const onKey = (e: KeyboardEvent) => {
@@ -138,6 +165,7 @@ export default function ReportDetailDrawer({
     () => clamp0to100(Number(report?.toxicityScore ?? 0)),
     [report?.toxicityScore]
   );
+
   const risk = useMemo(() => getRisk(score), [score]);
 
   const shareText = useMemo(() => {
@@ -186,7 +214,6 @@ export default function ReportDetailDrawer({
       return;
     }
 
-    // fallback: copy summary
     const copied = await safeCopy(shareText);
     setToast(copied ? { kind: "ok", msg: "Share text copied" } : { kind: "err", msg: "Share failed" });
   };
@@ -202,7 +229,6 @@ export default function ReportDetailDrawer({
     a.click();
     URL.revokeObjectURL(url);
 
-    // optional: also copy json
     const ok = await safeCopy(json);
     if (ok) setToast({ kind: "ok", msg: "JSON exported + copied" });
   };
@@ -218,6 +244,18 @@ export default function ReportDetailDrawer({
     return `${formatDate(report.date)}${rel ? ` · ${rel}` : ""}`;
   }, [report?.date]);
 
+  const parseTone =
+    report?.parse_status &&
+    (report.parse_status.toLowerCase() === "ok" ||
+      report.parse_status.toLowerCase() === "parsed")
+      ? "ok"
+      : report?.parse_status
+      ? "warn"
+      : "default";
+
+  const reviewTone = report?.review_recommended ? "danger" : "ok";
+  const fallbackTone = report?.fallback_used ? "warn" : "ok";
+
   return (
     <AnimatePresence>
       {isOpen && report && (
@@ -227,10 +265,8 @@ export default function ReportDetailDrawer({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
         >
-          {/* Overlay */}
           <div className="flex-1 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
-          {/* Panel */}
           <motion.aside
             className="relative w-full max-w-xl bg-[#050509] border-l border-purple-500/30 shadow-2xl shadow-purple-900/40 flex flex-col"
             initial={{ x: 420 }}
@@ -238,26 +274,23 @@ export default function ReportDetailDrawer({
             exit={{ x: 420 }}
             transition={{ type: "spring", stiffness: 260, damping: 28 }}
           >
-            {/* Toast */}
             <AnimatePresence>
               {toast && (
                 <motion.div
                   initial={{ opacity: 0, y: -8 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -8 }}
-                  className={`absolute top-4 left-1/2 -translate-x-1/2 z-50 rounded-full px-4 py-2 text-xs border shadow-lg
-                    ${
-                      toast.kind === "ok"
-                        ? "bg-emerald-500/10 text-emerald-200 border-emerald-500/30"
-                        : "bg-red-500/10 text-red-200 border-red-500/30"
-                    }`}
+                  className={`absolute top-4 left-1/2 -translate-x-1/2 z-50 rounded-full px-4 py-2 text-xs border shadow-lg ${
+                    toast.kind === "ok"
+                      ? "bg-emerald-500/10 text-emerald-200 border-emerald-500/30"
+                      : "bg-red-500/10 text-red-200 border-red-500/30"
+                  }`}
                 >
                   {toast.msg}
                 </motion.div>
               )}
             </AnimatePresence>
 
-            {/* Header */}
             <div className="flex items-start justify-between px-6 py-5 border-b border-purple-500/20">
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-purple-300 flex-wrap">
@@ -273,7 +306,6 @@ export default function ReportDetailDrawer({
                     {report.classification || "Unlabeled content"}
                   </h2>
 
-                  {/* Severity badge */}
                   <span
                     className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium ${risk.className}`}
                     title={`Severity: ${risk.label}`}
@@ -282,12 +314,10 @@ export default function ReportDetailDrawer({
                     {risk.label}
                   </span>
 
-                  {/* Score chip */}
                   <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-gray-200">
                     Score: <span className="ml-1 font-semibold">{score}</span>/100
                   </span>
 
-                  {/* Platform chip */}
                   <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-gray-200">
                     {report.platform || "Unknown"}
                   </span>
@@ -305,9 +335,7 @@ export default function ReportDetailDrawer({
               </button>
             </div>
 
-            {/* Content */}
             <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
-              {/* Toxicity bar */}
               <div className="space-y-2">
                 <p className="text-xs uppercase tracking-wide text-gray-500">
                   Toxicity score
@@ -320,7 +348,96 @@ export default function ReportDetailDrawer({
                 </div>
               </div>
 
-              {/* Actions */}
+              <div className="grid grid-cols-2 gap-3">
+                <MetaChip
+                  label="Classification status"
+                  value={report.classification_status || "auto"}
+                  tone={
+                    report.classification_status &&
+                    report.classification_status.toLowerCase() !== "ok" &&
+                    report.classification_status.toLowerCase() !== "classified"
+                      ? "warn"
+                      : "ok"
+                  }
+                />
+                <MetaChip
+                  label="Parse status"
+                  value={report.parse_status || "no parse info"}
+                  tone={parseTone}
+                />
+                <MetaChip
+                  label="Fallback used"
+                  value={report.fallback_used ? "Yes" : "No"}
+                  tone={fallbackTone}
+                />
+                <MetaChip
+                  label="Review recommended"
+                  value={report.review_recommended ? "Yes" : "No"}
+                  tone={reviewTone}
+                />
+                <MetaChip
+                  label="Sheet status"
+                  value={report.sheet_status || "n/a"}
+                  tone={
+                    report.sheet_status && report.sheet_status !== "ok" ? "warn" : "default"
+                  }
+                />
+                <MetaChip
+                  label="Raw class"
+                  value={report.rawClassification || report.classification || "unknown"}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-xs uppercase tracking-wide text-gray-500">
+                  AI explanation
+                </p>
+
+                <div className="rounded-xl border border-purple-500/20 bg-gradient-to-br from-purple-950/40 via-black to-black p-4 text-sm text-gray-100 space-y-2">
+                  <p>
+                    This content was classified as{" "}
+                    <span className="text-purple-300 font-medium">
+                      {report.classification}
+                    </span>{" "}
+                    due to detected harmful or aggressive language patterns.
+                  </p>
+
+                  {score >= 80 ? (
+                    <p className="text-red-300">
+                      High toxicity score indicates strong likelihood of hate or abusive intent.
+                    </p>
+                  ) : score >= 60 ? (  
+                    <p className="text-orange-300">
+                      Medium-high toxicity suggests potentially harmful language.
+                    </p>
+                  ) : (
+                    <p className="text-yellow-200">
+                      Lower toxicity, but still flagged based on classification signals.
+                    </p>
+                  )}
+
+                  {report.fallback_used ? (
+                    <p className="text-yellow-300">
+                      Fallback classification was used because the model output was uncertain.
+                    </p>
+                  ) : (
+                    <p className="text-emerald-300">
+                      Primary classification flow was used for this decision.
+                    </p>
+                  )}
+
+                  {report.review_recommended ? (
+                    <p className="text-red-300">
+                      Manual review is recommended for this item.
+                    </p>
+                  ) : (
+                    <p className="text-emerald-300">
+                      No manual review flag is currently attached to this item.
+                    </p>
+                  )}
+                </div>
+              </div>
+
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={handleCopySnippet}
@@ -358,12 +475,11 @@ export default function ReportDetailDrawer({
                 <button
                   onClick={handleCopySourceUrl}
                   disabled={!report.url}
-                  className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition
-                    ${
-                      report.url
-                        ? "border border-purple-500/40 text-purple-200 hover:bg-purple-500/10"
-                        : "bg-white/5 text-gray-500 cursor-not-allowed border border-white/10"
-                    }`}
+                  className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+                    report.url
+                      ? "border border-purple-500/40 text-purple-200 hover:bg-purple-500/10"
+                      : "bg-white/5 text-gray-500 cursor-not-allowed border border-white/10"
+                  }`}
                   title={report.url ? "Copy source URL" : "No source URL"}
                 >
                   <LinkIcon className="w-4 h-4" />
@@ -373,12 +489,11 @@ export default function ReportDetailDrawer({
                 <button
                   onClick={handleOpenSource}
                   disabled={!report.url}
-                  className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition
-                    ${
-                      report.url
-                        ? "bg-purple-600 text-white hover:bg-purple-500"
-                        : "bg-white/5 text-gray-500 cursor-not-allowed border border-white/10"
-                    }`}
+                  className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+                    report.url
+                      ? "bg-purple-600 text-white hover:bg-purple-500"
+                      : "bg-white/5 text-gray-500 cursor-not-allowed border border-white/10"
+                  }`}
                   title={report.url ? "Open source" : "No source URL"}
                 >
                   <ArrowTopRightOnSquareIcon className="w-4 h-4" />
@@ -386,7 +501,6 @@ export default function ReportDetailDrawer({
                 </button>
               </div>
 
-              {/* Content */}
               <div className="space-y-2">
                 <p className="text-xs uppercase tracking-wide text-gray-500">
                   Content snippet
@@ -398,7 +512,6 @@ export default function ReportDetailDrawer({
                 </div>
               </div>
 
-              {/* Source */}
               {report.url ? (
                 <div className="space-y-2">
                   <p className="text-xs uppercase tracking-wide text-gray-500">Source</p>
@@ -413,7 +526,6 @@ export default function ReportDetailDrawer({
                 </div>
               ) : null}
 
-              {/* Timeline */}
               <div className="space-y-3">
                 <p className="text-xs uppercase tracking-wide text-gray-500">
                   Review timeline
@@ -422,20 +534,30 @@ export default function ReportDetailDrawer({
                   <li className="ml-1">
                     <div className="absolute -left-[9px] mt-0.5 h-2 w-2 rounded-full bg-purple-400 shadow shadow-purple-500" />
                     <p className="font-medium text-gray-100">Detected by AI classifier</p>
-                    <p className="text-[11px] text-gray-500">{formatDate(report.date)}</p>
+                    <p className="text-[11px] text-gray-500">{formatDate(report.date ?? "")}</p>
                   </li>
+
                   <li className="ml-1">
                     <div className="absolute -left-[9px] mt-0.5 h-2 w-2 rounded-full bg-indigo-400 shadow shadow-indigo-500" />
-                    <p className="font-medium text-gray-100">Queued for newsroom review</p>
+                    <p className="font-medium text-gray-100">Parsing + normalization</p>
                     <p className="text-[11px] text-gray-500">
-                      Awaiting assignment to reviewer
+                      Parse status: {report.parse_status || "no parse info"}
                     </p>
                   </li>
+
                   <li className="ml-1">
-                    <div className="absolute -left-[9px] mt-0.5 h-2 w-2 rounded-full bg-gray-500 shadow shadow-gray-500" />
-                    <p className="font-medium text-gray-100">Reviewer action</p>
+                    <div
+                      className={`absolute -left-[9px] mt-0.5 h-2 w-2 rounded-full shadow ${
+                        report.review_recommended
+                          ? "bg-red-400 shadow-red-500"
+                          : "bg-emerald-400 shadow-emerald-500"
+                      }`}
+                    />
+                    <p className="font-medium text-gray-100">Review routing</p>
                     <p className="text-[11px] text-gray-500">
-                      Connect “reviewed” later when you add backend update endpoint.
+                      {report.review_recommended
+                        ? "This item should be reviewed manually."
+                        : "No manual review flag on this item."}
                     </p>
                   </li>
                 </ol>

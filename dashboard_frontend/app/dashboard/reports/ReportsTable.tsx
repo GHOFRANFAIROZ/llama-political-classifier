@@ -1,26 +1,17 @@
 "use client";
 
-export type Report = {
-  id: string;
-  textSnippet: string;
-  platform: string;
-  classification: string;
-  toxicityScore: number;
-  date: string;
-  url?: string; // ✅ optional for future
-};
+import type { ReportItem } from "@/app/lib/reports/types";
+import ReportStatusBadges from "@/components/reports/ReportStatusBadges";
+
+export type Report = ReportItem;
 
 type Props = {
   reports: Report[];
   loading: boolean;
-
-  // ✅ total ممكن يكون null إذا API ما رجّعته
   total?: number | null;
-
   page: number;
   pageSize: number;
-  hasMore?: boolean; // ✅ بديل للتنقل لما total مجهولة
-
+  hasMore?: boolean;
   onPageChange: (page: number) => void;
   onPageSizeChange: (size: number) => void;
   onReportClick?: (report: Report) => void;
@@ -36,6 +27,13 @@ function formatDate(dateString: string) {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function getToxicityTone(score: number) {
+  if (score >= 80) return "text-red-300";
+  if (score >= 60) return "text-orange-300";
+  if (score >= 40) return "text-yellow-200";
+  return "text-emerald-200";
 }
 
 export default function ReportsTable({
@@ -82,39 +80,77 @@ export default function ReportsTable({
               </tr>
             </thead>
             <tbody>
-              {reports.map((report) => (
-                <tr
-                  key={report.id}
-                  className="border-b border-purple-900/40 last:border-0 hover:bg-purple-900/10 transition cursor-pointer"
-                  onClick={() => onReportClick && onReportClick(report)}
-                >
-                  <td className="py-3 pr-4 align-top text-purple-100 max-w-xl">
-                    <span className="line-clamp-2">{report.textSnippet}</span>
-                  </td>
-                  <td className="py-3 pr-4 align-top text-purple-200">
-                    {report.platform}
-                  </td>
-                  <td className="py-3 pr-4 align-top">
-                    <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-purple-500/10 text-purple-200 border border-purple-500/40">
-                      {report.classification}
-                    </span>
-                  </td>
-                  <td className="py-3 pr-4 align-top text-purple-100">
-                    <span className="font-semibold">
-                      {Math.round(report.toxicityScore)}%
-                    </span>
-                  </td>
-                  <td className="py-3 align-top text-purple-300 whitespace-nowrap">
-                    {formatDate(report.date)}
-                  </td>
-                </tr>
-              ))}
+              {reports.map((report) => {
+                const score = Math.max(
+                  0,
+                  Math.min(100, Math.round(Number(report.toxicityScore ?? 0)))
+                );
+
+                return (
+                  <tr
+                    key={report.id}
+                    className="border-b border-purple-900/40 last:border-0 hover:bg-purple-900/10 transition cursor-pointer"
+                    onClick={() => onReportClick && onReportClick(report)}
+                  >
+                    <td className="py-3 pr-4 align-top text-purple-100 max-w-xl">
+                      <span className="line-clamp-2">{report.textSnippet}</span>
+                      <ReportStatusBadges report={report} />
+                    </td>
+
+                    <td className="py-3 pr-4 align-top text-purple-200 whitespace-nowrap">
+                      {report.platform || "Unknown"}
+                    </td>
+
+                    <td className="py-3 pr-4 align-top">
+                      <div className="flex flex-col gap-1">
+                        <span className="inline-flex w-fit px-2.5 py-1 rounded-full text-xs font-medium bg-purple-500/10 text-purple-200 border border-purple-500/40">
+                          {report.classification || "Unknown"}
+                        </span>
+
+                        {report.rawClassification &&
+                        report.rawClassification !== report.classification ? (
+                          <span className="text-[10px] text-purple-500 uppercase tracking-wide">
+                            raw: {report.rawClassification}
+                          </span>
+                        ) : null}
+                      </div>
+                    </td>
+
+                    <td className="py-3 pr-4 align-top">
+                      <div className="min-w-[120px]">
+                        <div className={`font-semibold ${getToxicityTone(score)}`}>
+                          {score}%
+                        </div>
+                        <div className="mt-1 h-1.5 rounded-full bg-white/5 border border-white/10 overflow-hidden">
+                          <div
+                            className={`h-full ${
+                              score >= 80
+                                ? "bg-red-500/60"
+                                : score >= 60
+                                ? "bg-orange-500/60"
+                                : score >= 40
+                                ? "bg-yellow-500/60"
+                                : "bg-emerald-500/60"
+                            }`}
+                            style={{
+                              width: `${Math.max(4, Math.min(100, score))}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </td>
+
+                    <td className="py-3 align-top text-purple-300 whitespace-nowrap">
+                      {formatDate(report.date ?? "")}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       )}
 
-      {/* Pagination */}
       <div className="flex items-center justify-between gap-4 text-xs text-purple-300">
         <div>
           {typeof total === "number" ? (

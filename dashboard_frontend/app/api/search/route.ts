@@ -1,11 +1,15 @@
-// app/api/search/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import {
+  extractScore,
+  normalizeClassDisplay,
+  normalizeDate,
+  normalizePlatformDisplay,
+} from "@/app/lib/reports/normalize";
 
 export const runtime = "nodejs";
 
 const backendBaseUrl = process.env.BACKEND_URL;
 
-/** ----- Helpers (same logic as /api/reports) ----- */
 function computeDateRange(range: string): { from?: string; to?: string } {
   const now = new Date();
   let fromDate: Date | null = null;
@@ -30,108 +34,129 @@ function computeDateRange(range: string): { from?: string; to?: string } {
   return { from: fromDate.toISOString(), to: now.toISOString() };
 }
 
-function clamp0to100(x: any) {
-  const n = Number(x);
-  if (!Number.isFinite(n)) return 0;
-  return Math.max(0, Math.min(100, Math.round(n)));
-}
-
 const PLATFORM_UI_TO_API: Record<string, string | null> = {
   "All platforms": null,
-  "Twitter (X)": "X",
-  Facebook: "facebook_post",
-  Instagram: "instagram_post",
-  TikTok: "tiktok_post",
-  "News Website": "news",
+  "Twitter (X)": "Twitter (X)",
+  Facebook: "Facebook",
+  Instagram: "Instagram",
+  TikTok: "TikTok",
+  "News Website": "News Website",
 };
 
 const CLASS_UI_TO_API: Record<string, string | null> = {
   All: null,
-  "Hate Speech": "HATE_SPEECH",
-  Abusive: "ABUSIVE",
-  Neutral: "NEUTRAL_OTHER",
+  "Hate Speech": "Hate Speech",
+  Abusive: "Abusive",
+  Neutral: "Neutral",
 };
 
-// ✅ fixed typing
-const PLATFORM_API_TO_UI: Record<string, string | undefined> = {
-  X: "Twitter (X)",
-  twitter: "Twitter (X)",
-  facebook_post: "Facebook",
-  facebook: "Facebook",
-  instagram_post: "Instagram",
-  instagram: "Instagram",
-  tiktok_post: "TikTok",
-  tiktok: "TikTok",
-  news: "News Website",
-};
-
-const CLASS_API_TO_UI: Record<string, string | undefined> = {
-  HATE_SPEECH: "Hate Speech",
-  ABUSIVE: "Abusive",
-  NEUTRAL_OTHER: "Neutral",
-};
-
-function normalizePlatformFilter(input: string) {
+function normalizePlatformFilter(input: string): string {
   const v = (input ?? "").trim();
   if (!v) return "";
   if (PLATFORM_UI_TO_API[v] === null) return "";
   return PLATFORM_UI_TO_API[v] ?? v;
 }
 
-function normalizeClassFilter(input: string) {
+function normalizeClassFilter(input: string): string {
   const v = (input ?? "").trim();
   if (!v) return "";
   if (CLASS_UI_TO_API[v] === null) return "";
   return CLASS_UI_TO_API[v] ?? v;
 }
 
-function normalizeDate(val: any): string {
-  if (!val) return "";
-  if (typeof val === "string") return val;
-  if (val instanceof Date) return val.toISOString();
-  if (typeof val === "number") return new Date(val).toISOString();
-  if (typeof val === "object") {
-    const sec = (val.seconds ?? val._seconds) as number | undefined;
-    if (typeof sec === "number") return new Date(sec * 1000).toISOString();
-  }
-  return String(val);
+function normalizeSort(sortRaw: string): {
+  sortBy: "created_at" | "toxicity";
+  direction: "asc" | "desc";
+} {
+  const s = (sortRaw ?? "").toLowerCase().trim();
+
+  if (s === "created_at_asc") return { sortBy: "created_at", direction: "asc" };
+  if (s === "toxicity_desc") return { sortBy: "toxicity", direction: "desc" };
+  if (s === "toxicity_asc") return { sortBy: "toxicity", direction: "asc" };
+
+  return { sortBy: "created_at", direction: "desc" };
 }
 
-function extractScore(r: any): number {
-  if (typeof r.toxicityScore === "number" || typeof r.toxicityScore === "string") {
-    return clamp0to100(r.toxicityScore);
+function getRawResults(data: any): any[] {
+  if (Array.isArray(data)) return data;
+  if (!data || typeof data !== "object") return [];
+
+  if (Array.isArray(data.results)) return data.results;
+  if (Array.isArray(data.reports)) return data.reports;
+  if (Array.isArray(data.items)) return data.items;
+  if (Array.isArray(data.data)) return data.data;
+
+  if (data.results && typeof data.results === "object") {
+    if (Array.isArray(data.results.items)) return data.results.items;
+    if (Array.isArray(data.results.reports)) return data.results.reports;
   }
 
-  if (typeof r.toxicity_score === "number" || typeof r.toxicity_score === "string") {
-    return clamp0to100(r.toxicity_score);
-  }
-
-  if (typeof r.toxicity === "number" || typeof r.toxicity === "string") {
-    return clamp0to100(r.toxicity);
-  }
-
-  if (typeof r.confidence_score === "number") {
-    const x = r.confidence_score <= 1 ? r.confidence_score * 100 : r.confidence_score;
-    return clamp0to100(x);
-  }
-
-  return 0;
+  return [];
 }
 
-function normalizePlatformDisplay(apiValue: string) {
-  const v = (apiValue ?? "").trim();
-  return PLATFORM_API_TO_UI[v] ?? (v || "Unknown");
+function mapSearchItem(r: any) {
+  const rawPlatform = String(
+    r?.platform ?? r?.source_type ?? r?.source ?? "Unknown"
+  );
+
+  const rawClassification = String(
+    r?.classification ??
+      r?.label_en ??
+      r?.label ??
+      r?.label_id ??
+      r?.category ??
+      "Unknown"
+  );
+
+  const displayClassification = normalizeClassDisplay(rawClassification);
+
+  return {
+    id: String(r?.id ?? r?.report_id ?? r?.dedupe_key ?? r?.doc_id ?? ""),
+    textSnippet: String(
+      r?.text_snippet ??
+        r?.textSnippet ??
+        r?.text ??
+        r?.snippet ??
+        r?.content ??
+        ""
+    ),
+    platform: normalizePlatformDisplay(rawPlatform),
+    classification: displayClassification,
+    rawClassification,
+    toxicityScore: extractScore(
+      r ?? {},
+      displayClassification,
+      rawClassification
+    ),
+    date: normalizeDate(
+      r?.date ?? r?.created_at ?? r?.post_time ?? r?.timestamp ?? r?.createdAt
+    ),
+    url: String(r?.url ?? r?.source_url ?? ""),
+    classification_status: String(r?.classification_status ?? ""),
+    fallback_used: Boolean(r?.fallback_used),
+    review_recommended: Boolean(r?.review_recommended),
+    parse_status: String(r?.parse_status ?? ""),
+    sheet_status: String(r?.sheet_status ?? ""),
+    ai_explanation: String(r?.ai_explanation ?? r?.explanation ?? ""),
+  };
 }
 
-function normalizeClassDisplay(apiValue: string) {
-  const v = (apiValue ?? "").trim();
-  return CLASS_API_TO_UI[v] ?? (v || "Unknown");
+function matchesPlatform(report: any, platformFilter: string) {
+  if (!platformFilter) return true;
+  return (report.platform ?? "").trim().toLowerCase() === platformFilter.trim().toLowerCase();
 }
 
-/** ----- Handler ----- */
+function matchesClassification(report: any, classificationFilter: string) {
+  if (!classificationFilter) return true;
+  return (report.classification ?? "").trim().toLowerCase() === classificationFilter.trim().toLowerCase();
+}
+
 export async function GET(req: NextRequest) {
   if (!backendBaseUrl) {
-    return NextResponse.json({ error: "BACKEND_URL is not configured" }, { status: 500 });
+    return NextResponse.json(
+      { error: "BACKEND_URL is not configured" },
+      { status: 500 }
+    );
   }
 
   const { searchParams } = new URL(req.url);
@@ -140,56 +165,65 @@ export async function GET(req: NextRequest) {
   const q = (searchParams.get("q") ?? "").trim();
 
   const platformRaw = (searchParams.get("platform") ?? "").trim();
-  const classificationRaw =
-    (searchParams.get("classification") ?? searchParams.get("category") ?? "").trim();
+  const classificationRaw = (
+    searchParams.get("classification") ??
+    searchParams.get("category") ??
+    ""
+  ).trim();
 
   const dateRange = (searchParams.get("date_range") ?? "7d").trim();
+  const sortRaw = (searchParams.get("sort") ?? "created_at_desc").trim();
 
-  const limitRaw = Number(searchParams.get("limit") ?? "50");
+  const limitRaw = Number(searchParams.get("limit") ?? "25");
   const offsetRaw = Number(searchParams.get("offset") ?? "0");
-  const limit = Number.isNaN(limitRaw) || limitRaw <= 0 ? 50 : limitRaw;
+
+  const limit = Number.isNaN(limitRaw) || limitRaw <= 0 ? 25 : limitRaw;
   const offset = Number.isNaN(offsetRaw) || offsetRaw < 0 ? 0 : offsetRaw;
 
-  const isOrgMode = !!orgId;
+  const isOrgMode = Boolean(orgId);
 
-  const path = isOrgMode
-    ? `/org/${encodeURIComponent(orgId as string)}/search`
-    : "/api/reports/search";
+  let path: string;
+  if (isOrgMode) {
+    path = q
+      ? `/org/${encodeURIComponent(orgId as string)}/search`
+      : `/org/${encodeURIComponent(orgId as string)}/reports`;
+  } else {
+    path = "/api/reports/search";
+  }
 
   const backendUrl = new URL(path, backendBaseUrl);
 
   const platform = normalizePlatformFilter(platformRaw);
   const classification = normalizeClassFilter(classificationRaw);
+  const { sortBy, direction } = normalizeSort(sortRaw);
 
   if (isOrgMode) {
     const page = Math.floor(offset / limit) + 1;
 
-    backendUrl.searchParams.set("query", q);
-    backendUrl.searchParams.set("q", q);
-
     backendUrl.searchParams.set("limit", String(limit));
     backendUrl.searchParams.set("page", String(page));
-    backendUrl.searchParams.set("sort", "desc");
-
-    if (platform) backendUrl.searchParams.set("platform", platform);
-
-    if (classification) {
-      backendUrl.searchParams.set("classification", classification);
-      backendUrl.searchParams.set("category", classification);
-    }
-
+    backendUrl.searchParams.set("sort", direction);
+    backendUrl.searchParams.set("sort_by", sortBy);
     backendUrl.searchParams.set("date_range", dateRange);
+
     const { from, to } = computeDateRange(dateRange);
     if (from) backendUrl.searchParams.set("date_from", from);
     if (to) backendUrl.searchParams.set("date_to", to);
-  } else {
-    if (q) backendUrl.searchParams.set("q", q);
-    if (platform) backendUrl.searchParams.set("platform", platform);
-    if (classification) backendUrl.searchParams.set("classification", classification);
 
+    if (q) {
+      backendUrl.searchParams.set("query", q);
+      backendUrl.searchParams.set("q", q);
+    }
+  } else {
     backendUrl.searchParams.set("date_range", dateRange);
     backendUrl.searchParams.set("limit", String(limit));
     backendUrl.searchParams.set("offset", String(offset));
+    backendUrl.searchParams.set("sort", direction);
+    backendUrl.searchParams.set("sort_by", sortBy);
+
+    if (q) {
+      backendUrl.searchParams.set("q", q);
+    }
   }
 
   try {
@@ -201,46 +235,55 @@ export async function GET(req: NextRequest) {
 
     if (!res.ok) {
       const text = await res.text().catch(() => "");
+      console.error("Search backend error:", {
+        url: backendUrl.toString(),
+        status: res.status,
+        body: text,
+      });
+
       return NextResponse.json(
-        { error: "Backend error", details: text.slice(0, 300) },
+        {
+          error: "Backend error",
+          backendUrl: backendUrl.toString(),
+          status: res.status,
+          details: text.slice(0, 1000),
+        },
         { status: 500 }
       );
     }
 
     const data = await res.json();
-    const rawResults = Array.isArray(data.results) ? data.results : [];
+    const rawResults = getRawResults(data);
 
-    const results = rawResults.map((r: any) => {
-      const apiPlatformVal = String(r.platform ?? r.source ?? "Unknown");
-      const apiClassVal = String(r.classification ?? r.label_en ?? r.label ?? r.label_id ?? "Unknown");
-
-      return {
-        id: String(r.id ?? r.report_id ?? r.dedupe_key ?? r.doc_id ?? ""),
-        textSnippet: String(r.text_snippet ?? r.textSnippet ?? r.text ?? r.snippet ?? ""),
-        platform: normalizePlatformDisplay(apiPlatformVal),
-        classification: normalizeClassDisplay(apiClassVal),
-        toxicityScore: extractScore(r),
-        date: normalizeDate(r.date ?? r.created_at ?? r.post_time ?? r.timestamp),
-        url: String(r.url ?? ""),
-      };
+    const normalizedResults = rawResults.map(mapSearchItem);
+    const filteredResults = normalizedResults.filter((report) => {
+      if (!matchesPlatform(report, platform)) return false;
+      if (!matchesClassification(report, classification)) return false;
+      return true;
     });
 
-    const total =
-      typeof data.total === "number"
-        ? data.total
-        : typeof data.count === "number"
-        ? data.count
-        : results.length;
+    const total = filteredResults.length;
+    const paginatedResults = filteredResults.slice(offset, offset + limit);
 
     return NextResponse.json({
-      results,
+      results: paginatedResults,
       total,
       limit,
       offset,
     });
   } catch (error: any) {
+    console.error("Search route processing error:", {
+      message: error?.message,
+      stack: error?.stack,
+      backendUrl: backendUrl.toString(),
+    });
+
     return NextResponse.json(
-      { error: "Failed to reach backend", details: error?.message ?? String(error) },
+      {
+        error: "Search route processing failed",
+        backendUrl: backendUrl.toString(),
+        details: error?.message ?? String(error),
+      },
       { status: 500 }
     );
   }
