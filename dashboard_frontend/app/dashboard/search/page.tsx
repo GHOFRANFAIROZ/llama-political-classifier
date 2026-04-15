@@ -1,6 +1,7 @@
 "use client";
+export const dynamic = "force-dynamic";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   MagnifyingGlassIcon,
@@ -178,7 +179,7 @@ function matchesParseStatusFilter(
   return true;
 }
 
-export default function SearchPage() {
+function SearchPageContent() {
   const { currentOrg, orgsLoading, orgsError, orgs } = useOrg();
   const searchParams = useSearchParams();
 
@@ -911,5 +912,13 @@ export default function SearchPage() {
         )}
       </AnimatePresence>
     </>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-purple-300">Loading...</div>}>
+      <SearchPageContent />
+    </Suspense>
   );
 }

@@ -6,6 +6,7 @@ import {
   ChevronDownIcon,
 } from "@heroicons/react/24/outline";
 import React, {
+  Suspense,
   useEffect,
   useMemo,
   useRef,
@@ -14,18 +15,15 @@ import React, {
   KeyboardEvent,
 } from "react";
 import { motion } from "framer-motion";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useOrg } from "@/app/context/OrgContext";
 
 type SuggestItem = { text: string; source: "firestore" | "recent" | "search" };
 
-export default function Navbar() {
+function NavbarContent() {
   const [open, setOpen] = useState(false);
 
-  // 🔍 search input
   const [searchValue, setSearchValue] = useState("");
-
-  // ✅ autocomplete states
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeIdx, setActiveIdx] = useState(-1);
   const [loadingSug, setLoadingSug] = useState(false);
@@ -34,7 +32,6 @@ export default function Navbar() {
 
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
 
   const { currentOrg, orgs, setCurrentOrg, orgsLoading, orgsSource, orgsError } =
     useOrg();
@@ -45,15 +42,11 @@ export default function Navbar() {
   const scope = currentOrg ? "org" : "public";
   const orgId = currentOrg?.id || "";
 
-  // ✅ Suggest cache (in-memory) + TTL
   const suggestCacheRef = useRef<
     Map<string, { ts: number; suggestions: { text: string }[] }>
   >(new Map());
   const SUGGEST_TTL_MS = 60_000;
 
-  // ----------------------------
-  // Recent Searches (localStorage)
-  // ----------------------------
   const RECENT_KEY = "ahm_recent_searches_v1";
 
   function loadRecent(): string[] {
@@ -85,9 +78,6 @@ export default function Navbar() {
     setRecent(loadRecent());
   }, []);
 
-  // ----------------------------
-  // Org Change
-  // ----------------------------
   const handleOrgChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const org = orgs.find((o) => o.id === e.target.value);
     if (!org) return;
@@ -104,9 +94,6 @@ export default function Navbar() {
     }
   };
 
-  // ----------------------------
-  // Autocomplete: fetch /api/suggest (debounced + cache + abort)
-  // ----------------------------
   useEffect(() => {
     const qq = searchValue.trim();
     if (qq.length < 2) {
@@ -116,10 +103,9 @@ export default function Navbar() {
       return;
     }
 
-    const key = `${scope}::${orgId || ""}::${qq.toLowerCase()}`;
+    const key = `${scope}::${orgId}::${qq.toLowerCase()}`;
     const now = Date.now();
 
-    // ✅ cache hit
     const cached = suggestCacheRef.current.get(key);
     if (cached && now - cached.ts < SUGGEST_TTL_MS) {
       setRemoteSug(cached.suggestions);
@@ -135,7 +121,9 @@ export default function Navbar() {
         const url = new URL("/api/suggest", window.location.origin);
         url.searchParams.set("q", qq);
         url.searchParams.set("scope", scope);
-        if (scope === "org" && orgId) url.searchParams.set("orgId", orgId);
+        if (scope === "org" && orgId) {
+          url.searchParams.set("orgId", orgId);
+        }
 
         const resp = await fetch(url.toString(), {
           cache: "no-store",
@@ -145,16 +133,25 @@ export default function Navbar() {
         const data = await resp.json();
 
         const suggestions = Array.isArray(data?.suggestions) ? data.suggestions : [];
-        const normalized = suggestions
-          .map((s: any) => ({ text: String(s?.text ?? "") }))
-          .filter((x: any) => x.text);
+        const normalized: { text: string }[] = suggestions
+          .map((s: unknown) => {
+            const text =
+              typeof s === "object" && s !== null && "text" in s
+                ? String((s as { text?: unknown }).text ?? "")
+                : "";
+            return { text };
+          })
+          .filter((x: { text: string }) => x.text.length > 0);
 
         setRemoteSug(normalized);
-
-        // ✅ save cache
-        suggestCacheRef.current.set(key, { ts: Date.now(), suggestions: normalized });
-      } catch (e: any) {
-        if (e?.name !== "AbortError") setRemoteSug([]);
+        suggestCacheRef.current.set(key, {
+          ts: Date.now(),
+          suggestions: normalized,
+        });
+      } catch (e: unknown) {
+        if (!(e instanceof Error && e.name === "AbortError")) {
+          setRemoteSug([]);
+        }
       } finally {
         setLoadingSug(false);
       }
@@ -166,27 +163,18 @@ export default function Navbar() {
     };
   }, [searchValue, scope, orgId]);
 
-  // ----------------------------
-  // Source C merge: 3 remote + 2 recent
-  // + إضافة خيار ثابت: Search for "..."
-  // ----------------------------
   const mergedSuggestions: SuggestItem[] = useMemo(() => {
     const q = searchValue.trim();
     const ql = q.toLowerCase();
 
-    // ✅ خيار ثابت مثل Google
-    const base: SuggestItem[] =
-      q.length > 0 ? [{ text: q, source: "search" as const }] : [];
+    const base: SuggestItem[] = q.length > 0 ? [{ text: q, source: "search" }] : [];
 
-    // 3 remote
     const remoteTop: SuggestItem[] = remoteSug
       .slice(0, 3)
-      .map((s) => ({ text: s.text, source: "firestore" as const }));
+      .map((s) => ({ text: s.text, source: "firestore" }));
 
-    // ✅ لو عندنا 3 remote جاهزين، ما نعرض recent
     const useRecent = remoteTop.length < 3;
 
-    // recent: فقط إذا match (أو q قصيرة جدًا)
     const recentTop: SuggestItem[] = !useRecent
       ? []
       : q.length < 2
@@ -196,14 +184,12 @@ export default function Navbar() {
           .slice(0, 2)
           .map((text) => ({ text, source: "recent" as const }));
 
-    // دمج بدون تكرار
     const seen = new Set<string>();
     const out: SuggestItem[] = [];
 
     for (const s of [...base, ...remoteTop, ...recentTop]) {
       const key = s.text.toLowerCase();
-      if (!key) continue;
-      if (seen.has(key)) continue;
+      if (!key || seen.has(key)) continue;
       seen.add(key);
       out.push(s);
     }
@@ -211,9 +197,6 @@ export default function Navbar() {
     return out;
   }, [searchValue, recent, remoteSug]);
 
-  // ----------------------------
-  // Highlight matching substring
-  // ----------------------------
   function renderHighlighted(text: string, query: string) {
     const q = query.trim();
     if (!q) return text;
@@ -234,9 +217,6 @@ export default function Navbar() {
     );
   }
 
-  // ----------------------------
-  // Context-aware routing to search
-  // ----------------------------
   const triggerSearch = (override?: string) => {
     const q = (override ?? searchValue).trim();
     if (!q) return;
@@ -244,15 +224,7 @@ export default function Navbar() {
     saveRecent(q);
 
     const encoded = encodeURIComponent(q);
-
-    if (pathname === "/dashboard/search") {
-      const sp = new URLSearchParams(searchParams.toString());
-      sp.set("q", q);
-      sp.set("scope", scope);
-      router.replace(`/dashboard/search?${sp.toString()}`);
-    } else {
-      router.push(`/dashboard/search?q=${encoded}&scope=${scope}`);
-    }
+    router.push(`/dashboard/search?q=${encoded}&scope=${scope}`);
 
     setShowSuggestions(false);
     setActiveIdx(-1);
@@ -288,7 +260,6 @@ export default function Navbar() {
     }
   };
 
-  // close dropdown on outside click
   useEffect(() => {
     function onDocClick(e: MouseEvent) {
       const el = dropdownRef.current;
@@ -298,6 +269,7 @@ export default function Navbar() {
         setActiveIdx(-1);
       }
     }
+
     document.addEventListener("mousedown", onDocClick);
     return () => document.removeEventListener("mousedown", onDocClick);
   }, []);
@@ -307,10 +279,8 @@ export default function Navbar() {
       initial={{ y: -20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.4 }}
-      className="w-full h-16 border-b border-purple-900/40 bg-[#0C0A12]/80 backdrop-blur-xl
-                 flex items-center justify-between px-6 shadow-[0_0_25px_rgba(138,43,226,0.25)]"
+      className="w-full h-16 border-b border-purple-900/40 bg-[#0C0A12]/80 backdrop-blur-xl flex items-center justify-between px-6 shadow-[0_0_25px_rgba(138,43,226,0.25)]"
     >
-      {/* Logo */}
       <div className="text-xl font-semibold text-purple-200 tracking-tight flex items-center gap-3">
         <span className="text-purple-400 animate-pulse">●</span>
         <span>Anti-Hate Monitor</span>
@@ -327,7 +297,6 @@ export default function Navbar() {
         </span>
       </div>
 
-      {/* 🔍 Search + Autocomplete */}
       <div className="relative w-96 max-w-lg" ref={dropdownRef}>
         <input
           ref={inputRef}
@@ -341,9 +310,7 @@ export default function Navbar() {
           }}
           onFocus={() => setShowSuggestions(true)}
           onKeyDown={onSearchKey}
-          className="w-full bg-[#120F18] border border-purple-900/40 rounded-xl px-4 py-2 text-sm
-                     text-purple-200 placeholder-purple-500 focus:outline-none
-                     focus:ring-2 focus:ring-purple-500 transition"
+          className="w-full bg-[#120F18] border border-purple-900/40 rounded-xl px-4 py-2 text-sm text-purple-200 placeholder-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
         />
 
         <MagnifyingGlassIcon
@@ -351,13 +318,8 @@ export default function Navbar() {
           onClick={() => triggerSearch()}
         />
 
-        {/* Dropdown */}
         {showSuggestions && (
-          <div
-            className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-xl
-                       border border-purple-900/40 bg-[#0F0C16] shadow-[0_0_25px_rgba(138,43,226,0.18)]"
-          >
-            {/* Skeleton */}
+          <div className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-xl border border-purple-900/40 bg-[#0F0C16] shadow-[0_0_25px_rgba(138,43,226,0.18)]">
             {loadingSug && (
               <div className="px-4 py-3 space-y-2">
                 <div className="h-3 rounded bg-purple-900/30 animate-pulse" />
@@ -365,7 +327,6 @@ export default function Navbar() {
               </div>
             )}
 
-            {/* Empty state */}
             {!loadingSug && mergedSuggestions.length === 0 && (
               <div className="px-4 py-3 text-sm text-purple-400/80">
                 No suggestions — press{" "}
@@ -373,7 +334,6 @@ export default function Navbar() {
               </div>
             )}
 
-            {/* Suggestions */}
             {!loadingSug &&
               mergedSuggestions.map((s, idx) => (
                 <button
@@ -417,9 +377,7 @@ export default function Navbar() {
         )}
       </div>
 
-      {/* Right side */}
       <div className="flex items-center gap-4 relative">
-        {/* Organization select */}
         <div className="hidden sm:flex flex-col items-start mr-1">
           <span className="text-[10px] uppercase tracking-wide text-purple-500 mb-0.5">
             Organization
@@ -429,9 +387,7 @@ export default function Navbar() {
             value={currentOrg?.id ?? ""}
             onChange={handleOrgChange}
             disabled={orgsLoading || orgs.length === 0}
-            className="bg-[#120F18] border border-purple-900/60 rounded-lg px-3 py-1.5 text-xs
-                       text-purple-100 focus:outline-none focus:ring-1 focus:ring-purple-500 min-w-[170px]
-                       disabled:opacity-60"
+            className="bg-[#120F18] border border-purple-900/60 rounded-lg px-3 py-1.5 text-xs text-purple-100 focus:outline-none focus:ring-1 focus:ring-purple-500 min-w-[170px] disabled:opacity-60"
           >
             {orgs.length === 0 ? (
               <option value="">No orgs</option>
@@ -447,7 +403,6 @@ export default function Navbar() {
           {orgsError && <span className="mt-1 text-[10px] text-red-400">{orgsError}</span>}
         </div>
 
-        {/* Notifications */}
         <motion.button
           whileHover={{ scale: 1.15 }}
           className="p-2 rounded-lg hover:bg-purple-900/40 transition shadow-[0_0_12px_rgba(176,92,255,0.35)]"
@@ -455,7 +410,6 @@ export default function Navbar() {
           <BellIcon className="w-6 h-6 text-purple-300" />
         </motion.button>
 
-        {/* User menu */}
         <motion.div
           whileHover={{ scale: 1.05 }}
           onClick={() => setOpen(!open)}
@@ -484,5 +438,15 @@ export default function Navbar() {
         )}
       </div>
     </motion.div>
+  );
+}
+
+export default function Navbar() {
+  return (
+    <Suspense
+      fallback={<div className="w-full h-16 border-b border-purple-900/40 bg-[#0C0A12]/80" />}
+    >
+      <NavbarContent />
+    </Suspense>
   );
 }
