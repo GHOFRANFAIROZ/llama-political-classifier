@@ -2,13 +2,19 @@
 import secrets
 import unicodedata
 import re
+import time
+import logging
 from firebase_admin import firestore
 from firebase_admin_setup import db
+
+logger = logging.getLogger("org-manager")
+
 
 class OrgManager:
     def __init__(self):
         self.db = db
         self.orgs_collection = self.db.collection("organizations")
+        logger.info("[ORG MANAGER] initialized collection=organizations")
 
     # -----------------------------------------
     # Normalize org_name → stable org_id
@@ -16,17 +22,13 @@ class OrgManager:
     def normalize_name(self, name: str) -> str:
         name = name.strip().lower()
 
-        # Remove diacritics (harakat/accent)
         name = "".join(
             c
             for c in unicodedata.normalize("NFD", name)
             if unicodedata.category(c) != "Mn"
         )
 
-        # Replace spaces with underscores
         name = name.replace(" ", "_")
-
-        # Keep Arabic, English, digits, underscore
         name = re.sub(r"[^a-zA-Z0-9_\u0600-\u06FF]", "", name)
 
         return name
@@ -35,10 +37,6 @@ class OrgManager:
     # Slug for dashboard URLs
     # -----------------------------------------
     def make_slug(self, name: str) -> str:
-        """
-        Create a URL-friendly slug from display name.
-        Uses normalize_name, then converts '_' → '-'.
-        """
         base = self.normalize_name(name)
         slug = base.replace("_", "-")
         return slug
@@ -47,13 +45,15 @@ class OrgManager:
     # Check if organization exists
     # -----------------------------------------
     def org_exists(self, org_id: str) -> bool:
-        return self.orgs_collection.document(org_id).get().exists
+        logger.info("[ORG EXISTS] org_id=%s before get()", org_id)
+        exists = self.orgs_collection.document(org_id).get().exists
+        logger.info("[ORG EXISTS] org_id=%s exists=%s", org_id, exists)
+        return exists
 
     # -----------------------------------------
     # Create full organization (Firestore ONLY)
     # -----------------------------------------
     def create_organization(self, org_id: str, display_name: str):
-
         slug = self.make_slug(display_name)
 
         token = secrets.token_hex(32)
@@ -66,7 +66,9 @@ class OrgManager:
             "created_at": firestore.SERVER_TIMESTAMP,
         }
 
+        logger.info("[CREATE ORG] org_id=%s before set()", org_id)
         self.orgs_collection.document(org_id).set(metadata)
+        logger.info("[CREATE ORG] org_id=%s set() done", org_id)
         return metadata
 
     # -----------------------------------------
@@ -75,39 +77,49 @@ class OrgManager:
     def get_or_create_org(self, org_name: str):
         org_id = self.normalize_name(org_name)
         doc_ref = self.orgs_collection.document(org_id)
-        doc = doc_ref.get()
 
-        # Existing org?
+        logger.info("[GET OR CREATE ORG] org_name=%s org_id=%s before get()", org_name, org_id)
+        doc = doc_ref.get()
+        logger.info("[GET OR CREATE ORG] org_id=%s get() done exists=%s", org_id, doc.exists)
+
         if doc.exists:
             data = doc.to_dict() or {}
-            # Ensure slug exists
             if not data.get("slug"):
                 display_name = data.get("display_name") or org_name
                 slug = self.make_slug(display_name)
                 data["slug"] = slug
+                logger.info("[GET OR CREATE ORG] org_id=%s missing slug -> update()", org_id)
                 doc_ref.update({"slug": slug})
+                logger.info("[GET OR CREATE ORG] org_id=%s slug update done", org_id)
             return data
 
-        # New organization → Firestore only
         return self.create_organization(org_id, org_name)
 
     # -----------------------------------------
     # List all organizations (for dashboard)
     # -----------------------------------------
     def list_orgs(self):
+        started = time.time()
+        logger.info("[LIST ORGS] start")
+
         orgs = []
-        for doc in self.orgs_collection.stream():
+        stream = self.orgs_collection.stream()
+        logger.info("[LIST ORGS] stream() opened")
+
+        count = 0
+        for doc in stream:
+            count += 1
+            if count == 1:
+                logger.info("[LIST ORGS] first document received id=%s", doc.id)
+
             data = doc.to_dict() or {}
 
-            # Ensure org_id
             if not data.get("org_id"):
                 data["org_id"] = doc.id
 
-            # Ensure display_name
             if not data.get("display_name"):
                 data["display_name"] = data["org_id"]
 
-            # Ensure slug
             if not data.get("slug"):
                 data["slug"] = self.make_slug(data["display_name"])
 
@@ -120,4 +132,7 @@ class OrgManager:
                     "country": data.get("country"),
                 }
             )
+
+        duration_ms = int((time.time() - started) * 1000)
+        logger.info("[LIST ORGS] done count=%s duration_ms=%s", count, duration_ms)
         return orgs

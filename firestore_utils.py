@@ -257,20 +257,38 @@ def _count_query(q) -> int:
     """
     يحاول يستخدم count aggregation لو متوفر، وإلا fallback stream.
     """
+    started = datetime.now(timezone.utc)
+    logger.info("[COUNT QUERY] start")
+
     try:
+        logger.info("[COUNT QUERY] before q.count()")
         agg = q.count()
+
+        logger.info("[COUNT QUERY] before agg.get()")
         res = agg.get()
+        logger.info("[COUNT QUERY] agg.get() done result=%s", res)
+
         if res and len(res) > 0:
             first = res[0]
-            # بعض الإصدارات ترجع list/tuple
             if isinstance(first, (list, tuple)) and len(first) > 0 and hasattr(first[0], "value"):
-                return int(first[0].value)
+                value = int(first[0].value)
+                logger.info("[COUNT QUERY] success value=%s", value)
+                return value
             if hasattr(first, "value"):
-                return int(first.value)
-        return sum(1 for _ in q.stream())
-    except Exception:
-        return sum(1 for _ in q.stream())
+                value = int(first.value)
+                logger.info("[COUNT QUERY] success value=%s", value)
+                return value
 
+        logger.warning("[COUNT QUERY] aggregation returned empty, falling back to stream count")
+        value = sum(1 for _ in q.stream())
+        logger.info("[COUNT QUERY] fallback stream count success value=%s", value)
+        return value
+
+    except Exception as e:
+        logger.warning("[COUNT QUERY] aggregation failed -> fallback stream. err=%s", e, exc_info=True)
+        value = sum(1 for _ in q.stream())
+        logger.info("[COUNT QUERY] fallback stream count success value=%s", value)
+        return value
 
 def _apply_date_filters(ref, date_range: Optional[str], date_from: Any, date_to: Any):
     """
@@ -766,15 +784,32 @@ def _is_index_error(e: Exception) -> bool:
 def _stream_with_fallback_sort(ref, limit: int, offset: int, sort: str):
     reverse = (sort == "desc")
     direction = firestore.Query.DESCENDING if reverse else firestore.Query.ASCENDING
+
+    logger.info(
+        "[STREAM SORT] start limit=%s offset=%s sort=%s reverse=%s",
+        limit, offset, sort, reverse
+    )
+
     try:
+        logger.info("[STREAM SORT] before order_by(created_at)")
         ordered = ref.order_by("created_at", direction=direction)
-        return list(ordered.limit(limit).offset(offset).stream())
+
+        logger.info("[STREAM SORT] before ordered.limit().offset().stream()")
+        docs = list(ordered.limit(limit).offset(offset).stream())
+        logger.info("[STREAM SORT] ordered stream done docs=%s", len(docs))
+        return docs
+
     except Exception as e:
         if not _is_index_error(e):
+            logger.error("[STREAM SORT] non-index error: %s", e, exc_info=True)
             raise
-        # fallback بدون order_by (مناسب للتطوير)
+
+        logger.warning("[STREAM SORT] index error -> fallback without order_by. err=%s", e)
         take = max(0, offset) + max(1, limit)
+
+        logger.info("[STREAM SORT] fallback before ref.limit(%s).stream()", take)
         docs = list(ref.limit(take).stream())
+        logger.info("[STREAM SORT] fallback raw stream done docs=%s", len(docs))
 
         def key_fn(doc):
             data = doc.to_dict() or {}
@@ -782,7 +817,9 @@ def _stream_with_fallback_sort(ref, limit: int, offset: int, sort: str):
             return dt or datetime(1970, 1, 1, tzinfo=timezone.utc)
 
         docs_sorted = sorted(docs, key=key_fn, reverse=reverse)
-        return docs_sorted[offset: offset + limit]
+        sliced = docs_sorted[offset: offset + limit]
+        logger.info("[STREAM SORT] fallback sorted/sliced docs=%s", len(sliced))
+        return sliced
 # ================================
 # Search Reports (tokens-based)
 # supports date_range
@@ -868,30 +905,46 @@ def get_public_reports(
     date_to: Any = None,
     sort: str = "desc",
 ):
+    logger.info(
+        "[GET PUBLIC REPORTS] start limit=%s offset=%s platform=%s category=%s date_range=%s sort=%s",
+        limit, offset, platform, category, date_range, sort
+    )
+
     ref = db.collection("reports_public")
 
     if platform:
+        logger.info("[GET PUBLIC REPORTS] applying platform filter source == %s", platform)
         ref = ref.where("source", "==", platform)
 
     if category:
+        logger.info("[GET PUBLIC REPORTS] applying category filter label_id == %s", category)
         ref = ref.where("label_id", "==", category)
 
-    ref, _, _ = _apply_date_filters(ref, date_range, date_from, date_to)
+    ref, start_dt, end_dt = _apply_date_filters(ref, date_range, date_from, date_to)
+    logger.info("[GET PUBLIC REPORTS] date filters applied start=%s end=%s", start_dt, end_dt)
 
-    # ترتيب
     direction = firestore.Query.DESCENDING if sort == "desc" else firestore.Query.ASCENDING
     try:
+        logger.info("[GET PUBLIC REPORTS] before order_by(created_at)")
         ref = ref.order_by("created_at", direction=direction)
-        docs = list(ref.limit(limit).offset(offset).stream())
-    except Exception:
-        # fallback بدون order_by (للتطوير)
-        docs = list(ref.limit(offset + limit).stream())[offset:offset + limit]
 
-    # total
+        logger.info("[GET PUBLIC REPORTS] before ordered stream")
+        docs = list(ref.limit(limit).offset(offset).stream())
+        logger.info("[GET PUBLIC REPORTS] ordered stream done docs=%s", len(docs))
+    except Exception as e:
+        logger.warning("[GET PUBLIC REPORTS] ordered stream failed -> fallback. err=%s", e, exc_info=True)
+        docs = list(ref.limit(offset + limit).stream())[offset:offset + limit]
+        logger.info("[GET PUBLIC REPORTS] fallback stream done docs=%s", len(docs))
+
+    logger.info("[GET PUBLIC REPORTS] before total count")
     total = _count_query(ref)
+    logger.info("[GET PUBLIC REPORTS] total count done total=%s", total)
 
     results = []
-    for d in docs:
+    for i, d in enumerate(docs, start=1):
+        if i == 1:
+            logger.info("[GET PUBLIC REPORTS] first result doc_id=%s", d.id)
+
         data = d.to_dict() or {}
         data["id"] = d.id
         data["created_at"] = _to_iso(data.get("created_at"))
@@ -901,8 +954,8 @@ def get_public_reports(
             data["text_snippet"] = str(data["text"])[:240]
         results.append(data)
 
+    logger.info("[GET PUBLIC REPORTS] done results=%s total=%s", len(results), total)
     return {"results": results, "total": int(total)}
-
 
 def search_public_reports(
     q: str = "",
@@ -915,27 +968,46 @@ def search_public_reports(
     date_to: Any = None,
     sort: str = "desc",
 ):
+    logger.info(
+        "[SEARCH PUBLIC] start q=%s limit=%s offset=%s platform=%s category=%s date_range=%s sort=%s",
+        q, limit, offset, platform, category, date_range, sort
+    )
+
     q = (q or "").strip().lower()
     tokens = _tokenize(q)
+    logger.info("[SEARCH PUBLIC] tokens=%s", tokens[:10])
 
     ref = db.collection("reports_public")
+    logger.info("[SEARCH PUBLIC] base collection=reports_public")
 
     if platform:
+        logger.info("[SEARCH PUBLIC] applying platform filter source == %s", platform)
         ref = ref.where("source", "==", platform)
+
     if category:
+        logger.info("[SEARCH PUBLIC] applying category filter label_id == %s", category)
         ref = ref.where("label_id", "==", category)
 
-    ref, _, _ = _apply_date_filters(ref, date_range, date_from, date_to)
+    ref, start_dt, end_dt = _apply_date_filters(ref, date_range, date_from, date_to)
+    logger.info("[SEARCH PUBLIC] date filters applied start=%s end=%s", start_dt, end_dt)
 
     if tokens:
+        logger.info("[SEARCH PUBLIC] applying array_contains_any searchable_tokens")
         ref = ref.where("searchable_tokens", "array_contains_any", tokens[:10])
 
+    logger.info("[SEARCH PUBLIC] before docs fetch")
     docs = _stream_with_fallback_sort(ref, int(limit), int(offset), sort)
+    logger.info("[SEARCH PUBLIC] docs fetch done count=%s", len(docs))
 
+    logger.info("[SEARCH PUBLIC] before total count")
     total = _count_query(ref)
+    logger.info("[SEARCH PUBLIC] total count done total=%s", total)
 
     results = []
-    for d in docs:
+    for i, d in enumerate(docs, start=1):
+        if i == 1:
+            logger.info("[SEARCH PUBLIC] first result doc_id=%s", d.id)
+
         data = d.to_dict() or {}
         data["id"] = d.id
         data["created_at"] = _to_iso(data.get("created_at"))
@@ -945,4 +1017,5 @@ def search_public_reports(
             data["text_snippet"] = str(data["text"])[:240]
         results.append(data)
 
+    logger.info("[SEARCH PUBLIC] done results=%s total=%s", len(results), total)
     return {"results": results, "total": int(total)}

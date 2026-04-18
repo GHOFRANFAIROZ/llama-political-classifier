@@ -59,6 +59,12 @@ def start_timer():
     request.start_time = time.time()
     request.request_id = str(uuid.uuid4())[:8]
 
+    logger.info(
+        f"req={request.request_id} "
+        f"started method={request.method} "
+        f"path={request.path} "
+        f"args={dict(request.args)}"
+    )
 
 @app.after_request
 def log_request(response):
@@ -845,10 +851,6 @@ def search_org_reports(org_id):
 @limiter.limit("60 per minute")
 @app.route("/api/reports/search", methods=["GET"])
 def search_reports():
-    """
-    Public reports search (Firestore-backed).
-    Keeps the same query params used by the dashboard.
-    """
     try:
         from firestore_utils import search_public_reports
 
@@ -858,6 +860,12 @@ def search_reports():
         date_range = request.args.get("date_range", "7d", type=str)
         limit = request.args.get("limit", 50, type=int)
         offset = request.args.get("offset", 0, type=int)
+
+        logger.info(
+            f"req={request.request_id} [PUBLIC SEARCH ROUTE] "
+            f"q={q} platform={platform} classification={classification} "
+            f"date_range={date_range} limit={limit} offset={offset}"
+        )
 
         data = search_public_reports(
             q=q,
@@ -869,39 +877,28 @@ def search_reports():
             sort="desc",
         )
 
+        logger.info(
+            f"req={request.request_id} [PUBLIC SEARCH ROUTE] done results={len(data.get('results', []))} total={data.get('total')}"
+        )
+
         return jsonify(data), 200
 
     except Exception as e:
-        logger.error(f"[PUBLIC SEARCH ERROR] {e}", exc_info=True)
+        logger.error(f"req={getattr(request, 'request_id', 'unknown')} [PUBLIC SEARCH ERROR] {e}", exc_info=True)
         return jsonify({"error": "Internal server error"}), 500
-
 
 # ================================
 # ORGS LIST (for dashboard)
 # ================================
 @app.route("/orgs", methods=["GET"])
 def list_organizations():
-    """
-    Returns a list of organizations for the dashboard.
-    Shape:
-    {
-      "results": [
-        {
-          "org_id": "...",
-          "display_name": "...",
-          "slug": "...",
-          "plan": "...",
-          "country": "..."
-        },
-        ...
-      ]
-    }
-    """
     try:
+        logger.info(f"req={request.request_id} [ORGS ROUTE] start")
         orgs = org_manager.list_orgs()
+        logger.info(f"req={request.request_id} [ORGS ROUTE] done count={len(orgs)}")
         return jsonify({"results": orgs}), 200
     except Exception as e:
-        logger.error(f"[ORGS ERROR] {e}", exc_info=True)
+        logger.error(f"req={getattr(request, 'request_id', 'unknown')} [ORGS ERROR] {e}", exc_info=True)
         return jsonify({"error": "Internal server error"}), 500
 
 
