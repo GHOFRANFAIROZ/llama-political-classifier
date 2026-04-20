@@ -1,13 +1,12 @@
 // ==================================
-// 🌍 DEV / PROD Switch
+// DEV / PROD Switch
 // ==================================
 const IS_DEV = true;
 
-// 🟢 استخدمي 127.0.0.1 فقط للمحلي، هذا الأكثر استقراراً
-const API_BASE = IS_DEV
-  ? "http://127.0.0.1:10000"
-  : "https://anti-hate-api.mangowave-59e53001.germanywestcentral.azurecontainerapps.io";
+const DEV_API_BASE = "http://127.0.0.1:10000";
+const PROD_API_BASE = "https://my-classifier-v2.onrender.com";
 
+const API_BASE = IS_DEV ? DEV_API_BASE : PROD_API_BASE;
 // ==================================
 // 🌍 Multi-Server Classification
 // ==================================
