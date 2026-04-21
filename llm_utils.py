@@ -84,7 +84,10 @@ CLASSIFICATION_SCHEMA = {
 # ================================
 def build_prompt(text: str) -> str:
     return f"""
-You are a strict safety classifier for Arabic social media and public-content text.
+You are a strict classifier for Arabic harmful-content monitoring.
+
+Your task is NOT to decide whether you agree with the text.
+Your task is ONLY to classify the content exactly as written.
 
 Return ONLY valid JSON.
 Do not return markdown.
@@ -105,34 +108,48 @@ You must classify into exactly one of these labels:
 - PROTECTED_POLITICAL_OPINION
 - NEUTRAL_OTHER
 
-Decision rules:
-- If the text explicitly calls for killing, attacking, exterminating, expelling, burning, or physically harming people, use CALL_FOR_VIOLENCE.
-- If the text incites hatred or hostility against a sect or religion, use SECTARIAN_RELIGIOUS_INCITEMENT.
-- If the text dehumanizes or attacks a group based on identity, use HATE_SPEECH_GROUP.
-- If the text calls for violence in a political context, use POLITICAL_VIOLENCE_INCITEMENT.
-- If the text denies or justifies war crimes or mass atrocities, use WAR_CRIMES_DENIAL_JUSTIFICATION.
-- If the text is a direct abusive insult toward a person without broader group-hate or explicit violence, use TOXIC_PERSONAL_ATTACK.
-- If the text contains political criticism or opinion without hate or incitement, use PROTECTED_POLITICAL_OPINION.
-- Use NEUTRAL_OTHER only if there is no clear hate, incitement, justification of atrocity, or toxic abuse.
+Definition rules:
+- CALL_FOR_VIOLENCE = explicit calls to kill, attack, burn, expel, exterminate, physically harm, or destroy people.
+- SECTARIAN_RELIGIOUS_INCITEMENT = hatred/incitement against a sect or religion.
+- HATE_SPEECH_GROUP = dehumanizing or hateful attack against a group based on identity.
+- POLITICAL_VIOLENCE_INCITEMENT = violence urged against political actors/groups in a political context.
+- WAR_CRIMES_DENIAL_JUSTIFICATION = denial or justification of mass atrocities or war crimes.
+- TOXIC_PERSONAL_ATTACK = insulting/abusive attack against a specific individual without broader group hate or explicit violence.
+- PROTECTED_POLITICAL_OPINION = political criticism/opinion without hate or violence.
+- NEUTRAL_OTHER = only if none of the above applies.
 
-Critical guidance:
-- Statements like "يجب قتلهم", "اطردوهم من البلد", "يجب حرقهم", "يجب إبادتهم" are NOT neutral.
-- Do not choose NEUTRAL_OTHER when there is explicit violent incitement.
-- Base the decision on the strongest explicit evidence in the text.
-- reason_ar must be short, clear, and in Arabic.
-- confidence_score must be a number between 0 and 1.
+Critical instructions:
+- If the text says "يجب قتل..." or "اقتلو..." or "يجب حرق..." or "يجب إباد..." or "اطردو..." then it is NOT neutral.
+- Any explicit call for killing or physical harm must be CALL_FOR_VIOLENCE.
+- Do not sanitize, reinterpret, soften, or excuse violent wording.
+- Classify the strongest explicit meaning in the text.
+- If violent wording is explicit, do not choose NEUTRAL_OTHER.
 
-Return exactly one JSON object in this format:
-{{
-  "label_id": "CALL_FOR_VIOLENCE",
-  "reason_ar": "سبب قصير بالعربية",
-  "confidence_score": 0.98
-}}
+Examples:
+Input: "يجب قتل الجميع"
+Output:
+{{"label_id":"CALL_FOR_VIOLENCE","reason_ar":"النص يتضمن دعوة صريحة إلى القتل.","confidence_score":0.99}}
 
-Content:
-{json.dumps(text, ensure_ascii=False)}
+Input: "اقتلوهم جميعاً"
+Output:
+{{"label_id":"CALL_FOR_VIOLENCE","reason_ar":"النص يحرض بشكل مباشر على القتل.","confidence_score":0.99}}
+
+Input: "هؤلاء يجب طردهم من البلد"
+Output:
+{{"label_id":"CALL_FOR_VIOLENCE","reason_ar":"النص يتضمن تحريضاً مباشراً على الإيذاء أو الإقصاء القسري.","confidence_score":0.9}}
+
+Input: "أنا أختلف مع هذه الحكومة وسياساتها"
+Output:
+{{"label_id":"PROTECTED_POLITICAL_OPINION","reason_ar":"النص يعبر عن رأي سياسي دون تحريض أو كراهية.","confidence_score":0.95}}
+
+Input: "هذا محتوى عادي بلا تحريض"
+Output:
+{{"label_id":"NEUTRAL_OTHER","reason_ar":"النص لا يتضمن تحريضاً أو كراهية أو إساءة مباشرة.","confidence_score":0.95}}
+
+Now classify this content:
+
+{text}
 """.strip()
-
 
 # ================================
 # Helpers

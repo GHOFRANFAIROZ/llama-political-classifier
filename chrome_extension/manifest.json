@@ -11,8 +11,8 @@
     "activeTab"
   ],
   "host_permissions": [
-    "http://192.168.1.109:5000/*",
-    "https://anti-hate-api.mangowave-59e53001.germanywestcentral.azurecontainerapps.io/*",
+    "http://127.0.0.1:10000/*",
+    "https://my-classifier-v2.onrender.com/*",
     "https://x.com/*",
     "https://twitter.com/*",
     "https://www.facebook.com/*",
