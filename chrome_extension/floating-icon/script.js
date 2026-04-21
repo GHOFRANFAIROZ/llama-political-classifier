@@ -1,3 +1,4 @@
+console.log("FLOATING-ICON SCRIPT LOADED");
 // 🌍 قائمة السيرفرات (Render + Railway)
 const SERVERS = [
   "https://my-ai-classifier.onrender.com/classify",              // السيرفر الرئيسي (Render)
