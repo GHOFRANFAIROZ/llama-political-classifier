@@ -1,11 +1,26 @@
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "./context/AuthContext";
+
 export default function HomePage() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (loading) return;
+
+    if (user) {
+      router.replace("/dashboard");
+    } else {
+      router.replace("/login");
+    }
+  }, [user, loading, router]);
+
   return (
-    <div className="h-screen flex flex-col items-center justify-center text-center text-purple-200">
-      <h1 className="text-5xl font-bold mb-4">Anti-Hate Monitor Dashboard</h1>
-      <p className="text-lg text-purple-400 max-w-xl">
-        Welcome to the cyber intelligence dashboard — analyze trends, monitor hate speech reports,
-        and visualize platform toxicity levels in real-time.
-      </p>
+    <div className="h-screen flex items-center justify-center text-purple-200">
+      <p className="text-lg">Loading...</p>
     </div>
   );
 }

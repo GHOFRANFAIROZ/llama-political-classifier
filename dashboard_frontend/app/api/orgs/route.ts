@@ -3,7 +3,13 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
-const backendBaseUrl = process.env.BACKEND_URL;
+function getBackendBaseUrl() {
+  return (
+    process.env.BACKEND_URL ||
+    process.env.NEXT_PUBLIC_BACKEND_URL ||
+    ""
+  ).trim();
+}
 
 type Org = {
   id: string;
@@ -14,6 +20,8 @@ type Org = {
 };
 
 export async function GET(_req: NextRequest) {
+  const backendBaseUrl = getBackendBaseUrl();
+
   if (!backendBaseUrl) {
     return NextResponse.json(
       { error: "BACKEND_URL is not configured" },
@@ -62,7 +70,10 @@ export async function GET(_req: NextRequest) {
     return NextResponse.json({ orgs });
   } catch (error: any) {
     return NextResponse.json(
-      { error: "Failed to reach backend", details: error?.message ?? String(error) },
+      {
+        error: "Failed to reach backend",
+        details: error?.message ?? String(error),
+      },
       { status: 500 }
     );
   }

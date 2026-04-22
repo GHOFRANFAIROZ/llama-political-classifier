@@ -3,10 +3,14 @@
 import React, { useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useOrg } from "@/app/context/OrgContext";
+import { useAuth } from "@/app/context/AuthContext";
 
 export default function OrgSelector() {
   const router = useRouter();
   const pathname = usePathname();
+
+  const { userProfile } = useAuth();
+  const isAdmin = userProfile?.role === "admin";
 
   const { orgs, currentOrg, setCurrentOrg, orgsLoading } = useOrg();
 
@@ -19,13 +23,14 @@ export default function OrgSelector() {
   }, [orgs]);
 
   function onChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    if (!isAdmin) return;
+
     const selectedId = e.target.value;
     const found = orgs.find((o) => o.id === selectedId);
     if (!found) return;
 
     setCurrentOrg(found);
 
-    // لو نحن داخل صفحة org dashboard، لازم نغيّر URL للـ slug الجديد
     const isOrgDashboardRoute =
       pathname?.startsWith("/dashboard/organizations/") &&
       pathname !== "/dashboard/organizations";
@@ -34,6 +39,22 @@ export default function OrgSelector() {
       const slug = found.slug || found.id.replaceAll("_", "-");
       router.push(`/dashboard/organizations/${slug}`);
     }
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="flex items-center gap-2">
+        <span className="text-[10px] uppercase tracking-wide text-purple-500">
+          Organization
+        </span>
+        <div
+          className="bg-[#120F18] border border-purple-900/60 rounded-lg px-3 py-1.5 text-xs text-purple-100
+                     min-w-[170px]"
+        >
+          {currentOrg?.name || userProfile?.org_id || "Assigned org"}
+        </div>
+      </div>
+    );
   }
 
   return (
