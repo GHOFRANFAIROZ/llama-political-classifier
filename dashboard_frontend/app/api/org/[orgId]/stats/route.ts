@@ -1,12 +1,22 @@
 // app/api/org/[orgId]/stats/route.ts
 import { NextRequest, NextResponse } from "next/server";
 
-const backendBaseUrl = process.env.BACKEND_URL;
+export const runtime = "nodejs";
+
+function getBackendBaseUrl() {
+  return (
+    process.env.BACKEND_URL ||
+    process.env.NEXT_PUBLIC_BACKEND_URL ||
+    ""
+  ).trim();
+}
 
 export async function GET(
   req: NextRequest,
   { params }: { params: { orgId: string } }
 ) {
+  const backendBaseUrl = getBackendBaseUrl();
+
   if (!backendBaseUrl) {
     return NextResponse.json(
       { error: "BACKEND_URL is not configured" },
@@ -22,7 +32,6 @@ export async function GET(
     backendBaseUrl
   );
 
-  // مرر أي params (مثلاً date_range) للـ backend
   searchParams.forEach((value, key) => {
     backendUrl.searchParams.set(key, value);
   });
@@ -35,7 +44,7 @@ export async function GET(
     });
 
     if (!res.ok) {
-      const text = await res.text();
+      const text = await res.text().catch(() => "");
       return NextResponse.json(
         { error: "Backend error", details: text },
         { status: 500 }
@@ -44,7 +53,6 @@ export async function GET(
 
     const data = await res.json();
 
-    // تطبيع البيانات لأسماء مفهومة في الـ frontend
     const mapped = {
       totalReports:
         data.total_reports ?? data.totalReports ?? data.total ?? 0,
@@ -64,7 +72,10 @@ export async function GET(
     return NextResponse.json(mapped);
   } catch (error: any) {
     return NextResponse.json(
-      { error: "Failed to reach backend", details: String(error) },
+      {
+        error: "Failed to reach backend",
+        details: error?.message ?? String(error),
+      },
       { status: 500 }
     );
   }

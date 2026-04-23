@@ -16,7 +16,10 @@ import React, {
 } from "react";
 import { motion } from "framer-motion";
 import { usePathname, useRouter } from "next/navigation";
+import { signOut } from "firebase/auth";
 import { useOrg } from "@/app/context/OrgContext";
+import { useAuth } from "@/app/context/AuthContext";
+import { auth } from "@/lib/firebase";
 
 type SuggestItem = { text: string; source: "firestore" | "recent" | "search" };
 
@@ -32,6 +35,10 @@ function NavbarContent() {
 
   const router = useRouter();
   const pathname = usePathname();
+
+  const { user, userProfile } = useAuth();
+  const role = userProfile?.role ?? null;
+  const isAdmin = role === "admin";
 
   const { currentOrg, orgs, setCurrentOrg, orgsLoading, orgsSource, orgsError } =
     useOrg();
@@ -274,6 +281,15 @@ function NavbarContent() {
     return () => document.removeEventListener("mousedown", onDocClick);
   }, []);
 
+  async function handleLogout() {
+    try {
+      await signOut(auth);
+      router.replace("/login");
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  }
+
   return (
     <motion.div
       initial={{ y: -20, opacity: 0 }}
@@ -291,6 +307,10 @@ function NavbarContent() {
             <span className="text-purple-100">{currentOrg.name}</span>
           </span>
         )}
+
+        <span className="hidden md:inline text-[10px] text-purple-500 border border-purple-900/50 bg-black/20 px-2 py-0.5 rounded-full">
+          {isAdmin ? "Admin" : role === "org_user" ? "Org User" : "Unknown"}
+        </span>
 
         <span className="hidden md:inline text-[10px] text-purple-500 border border-purple-900/50 bg-black/20 px-2 py-0.5 rounded-full">
           {orgsLoading ? "Loading orgs…" : orgsSource === "api" ? "API" : "Fallback"}
@@ -378,30 +398,41 @@ function NavbarContent() {
       </div>
 
       <div className="flex items-center gap-4 relative">
-        <div className="hidden sm:flex flex-col items-start mr-1">
-          <span className="text-[10px] uppercase tracking-wide text-purple-500 mb-0.5">
-            Organization
-          </span>
+        {isAdmin ? (
+          <div className="hidden sm:flex flex-col items-start mr-1">
+            <span className="text-[10px] uppercase tracking-wide text-purple-500 mb-0.5">
+              Organization
+            </span>
 
-          <select
-            value={currentOrg?.id ?? ""}
-            onChange={handleOrgChange}
-            disabled={orgsLoading || orgs.length === 0}
-            className="bg-[#120F18] border border-purple-900/60 rounded-lg px-3 py-1.5 text-xs text-purple-100 focus:outline-none focus:ring-1 focus:ring-purple-500 min-w-[170px] disabled:opacity-60"
-          >
-            {orgs.length === 0 ? (
-              <option value="">No orgs</option>
-            ) : (
-              orgs.map((org) => (
-                <option key={org.id} value={org.id}>
-                  {org.name} {org.plan ? `(${org.plan})` : ""}
-                </option>
-              ))
-            )}
-          </select>
+            <select
+              value={currentOrg?.id ?? ""}
+              onChange={handleOrgChange}
+              disabled={orgsLoading || orgs.length === 0}
+              className="bg-[#120F18] border border-purple-900/60 rounded-lg px-3 py-1.5 text-xs text-purple-100 focus:outline-none focus:ring-1 focus:ring-purple-500 min-w-[170px] disabled:opacity-60"
+            >
+              {orgs.length === 0 ? (
+                <option value="">No orgs</option>
+              ) : (
+                orgs.map((org) => (
+                  <option key={org.id} value={org.id}>
+                    {org.name} {org.plan ? `(${org.plan})` : ""}
+                  </option>
+                ))
+              )}
+            </select>
 
-          {orgsError && <span className="mt-1 text-[10px] text-red-400">{orgsError}</span>}
-        </div>
+            {orgsError && <span className="mt-1 text-[10px] text-red-400">{orgsError}</span>}
+          </div>
+        ) : (
+          <div className="hidden sm:flex flex-col items-start mr-1">
+            <span className="text-[10px] uppercase tracking-wide text-purple-500 mb-0.5">
+              Organization
+            </span>
+            <div className="bg-[#120F18] border border-purple-900/60 rounded-lg px-3 py-1.5 text-xs text-purple-100 min-w-[170px]">
+              {currentOrg?.name || userProfile?.org_id || "Assigned org"}
+            </div>
+          </div>
+        )}
 
         <motion.button
           whileHover={{ scale: 1.15 }}
@@ -423,17 +454,24 @@ function NavbarContent() {
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="absolute right-0 top-14 bg-[#120F18] border border-purple-900/40 rounded-xl p-3 w-44 shadow-xl"
+            className="absolute right-0 top-14 bg-[#120F18] border border-purple-900/40 rounded-xl p-3 w-52 shadow-xl"
           >
+            <p className="text-purple-300 text-xs mb-2">
+              {user?.email ?? "Signed in user"}
+            </p>
             <p className="text-purple-200 text-sm hover:text-white cursor-pointer py-1">
               Profile
             </p>
             <p className="text-purple-200 text-sm hover:text-white cursor-pointer py-1">
               Settings
             </p>
-            <p className="text-red-400 text-sm hover:text-red-300 cursor-pointer py-1">
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="text-left w-full text-red-400 text-sm hover:text-red-300 cursor-pointer py-1"
+            >
               Logout
-            </p>
+            </button>
           </motion.div>
         )}
       </div>

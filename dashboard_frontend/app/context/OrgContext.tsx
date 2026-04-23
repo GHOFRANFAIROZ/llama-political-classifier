@@ -9,6 +9,7 @@ import React, {
   useMemo,
   useCallback,
 } from "react";
+import { useAuth } from "./AuthContext";
 
 export type Org = {
   id: string;
@@ -64,6 +65,8 @@ function ensureSlug(o: Org) {
 }
 
 export function OrgProvider({ children }: { children: ReactNode }) {
+  const { userProfile, loading: authLoading, profileLoading } = useAuth();
+
   const [orgs, setOrgs] = useState<Org[]>([]);
   const [currentOrg, setCurrentOrgState] = useState<Org | null>(null);
 
@@ -72,6 +75,14 @@ export function OrgProvider({ children }: { children: ReactNode }) {
   const [orgsError, setOrgsError] = useState<string | null>(null);
 
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
+
+  const role = userProfile?.role ?? null;
+  const isAdmin = role === "admin";
+  const isOrgUser = role === "org_user";
+  const assignedOrgId =
+    typeof userProfile?.org_id === "string" && userProfile.org_id.trim()
+      ? userProfile.org_id.trim()
+      : null;
 
   const loadOrgs = useCallback(async () => {
     setOrgsLoading(true);
@@ -115,11 +126,15 @@ export function OrgProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    if (authLoading || profileLoading) return;
+    if (!userProfile) return;
+
     void loadOrgs();
-  }, [loadOrgs]);
+  }, [authLoading, profileLoading, userProfile, loadOrgs]);
 
   useEffect(() => {
-    if (orgsLoading) return;
+    if (authLoading || profileLoading || orgsLoading) return;
+    if (!userProfile) return;
 
     if (!orgs.length) {
       setCurrentOrgState(null);
@@ -127,38 +142,95 @@ export function OrgProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const savedId = safeGetLS(LOCAL_STORAGE_KEY);
-    const envDefaultId = process.env.NEXT_PUBLIC_DEFAULT_ORG_ID;
+    if (isOrgUser) {
+      if (!assignedOrgId) {
+        setCurrentOrgState(null);
+        setOrgsError("No org is assigned to this account.");
+        safeRemoveLS(LOCAL_STORAGE_KEY);
+        return;
+      }
 
-    const desiredId = savedId || envDefaultId || orgs[0].id;
-    const found = orgs.find((o) => o.id === desiredId) || orgs[0];
+      const found =
+        orgs.find((o) => o.id === assignedOrgId) ||
+        orgs.find((o) => (o.slug || ensureSlug(o)) === assignedOrgId);
 
-    const normalized: Org = { ...found, slug: ensureSlug(found) };
-    setCurrentOrgState(normalized);
-    safeSetLS(LOCAL_STORAGE_KEY, normalized.id);
-  }, [orgsLoading, orgs]);
+      if (!found) {
+        setCurrentOrgState(null);
+        setOrgsError("Assigned org was not found in the organizations list.");
+        safeRemoveLS(LOCAL_STORAGE_KEY);
+        return;
+      }
 
-  const setCurrentOrg = useCallback((org: Org | null) => {
-    if (!org) {
-      setCurrentOrgState(null);
+      const normalized: Org = { ...found, slug: ensureSlug(found) };
+      setCurrentOrgState(normalized);
       safeRemoveLS(LOCAL_STORAGE_KEY);
       return;
     }
 
-    const normalized: Org = { ...org, slug: ensureSlug(org) };
-    setCurrentOrgState(normalized);
-    safeSetLS(LOCAL_STORAGE_KEY, normalized.id);
-  }, []);
+    if (isAdmin) {
+      const savedId = safeGetLS(LOCAL_STORAGE_KEY);
+      const envDefaultId = process.env.NEXT_PUBLIC_DEFAULT_ORG_ID;
+
+      const desiredId = savedId || envDefaultId || orgs[0].id;
+      const found = orgs.find((o) => o.id === desiredId) || orgs[0];
+
+      const normalized: Org = { ...found, slug: ensureSlug(found) };
+      setCurrentOrgState(normalized);
+      safeSetLS(LOCAL_STORAGE_KEY, normalized.id);
+      return;
+    }
+
+    setCurrentOrgState(null);
+    safeRemoveLS(LOCAL_STORAGE_KEY);
+  }, [
+    authLoading,
+    profileLoading,
+    orgsLoading,
+    orgs,
+    userProfile,
+    isAdmin,
+    isOrgUser,
+    assignedOrgId,
+  ]);
+
+  const setCurrentOrg = useCallback(
+    (org: Org | null) => {
+      if (!isAdmin) {
+        return;
+      }
+
+      if (!org) {
+        setCurrentOrgState(null);
+        safeRemoveLS(LOCAL_STORAGE_KEY);
+        return;
+      }
+
+      const normalized: Org = { ...org, slug: ensureSlug(org) };
+      setCurrentOrgState(normalized);
+      safeSetLS(LOCAL_STORAGE_KEY, normalized.id);
+    },
+    [isAdmin]
+  );
 
   const refreshOrgs = useCallback(async () => {
     await loadOrgs();
   }, [loadOrgs]);
 
+  const visibleOrgs = useMemo(() => {
+    const normalized = orgs.map((o) => ({ ...o, slug: ensureSlug(o) }));
+
+    if (isOrgUser) {
+      return currentOrg ? [currentOrg] : [];
+    }
+
+    return normalized;
+  }, [orgs, currentOrg, isOrgUser]);
+
   const value = useMemo<OrgContextValue>(
     () => ({
       currentOrg,
       setCurrentOrg,
-      orgs: orgs.map((o) => ({ ...o, slug: ensureSlug(o) })),
+      orgs: visibleOrgs,
       orgsLoading,
       orgsSource,
       orgsError,
@@ -168,7 +240,7 @@ export function OrgProvider({ children }: { children: ReactNode }) {
     [
       currentOrg,
       setCurrentOrg,
-      orgs,
+      visibleOrgs,
       orgsLoading,
       orgsSource,
       orgsError,

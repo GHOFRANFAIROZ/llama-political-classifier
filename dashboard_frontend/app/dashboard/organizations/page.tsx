@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useOrg, Org } from "@/app/context/OrgContext";
+import { useAuth } from "@/app/context/AuthContext";
 import { motion } from "framer-motion";
 
 type OrgPlan = "Free" | "Pro" | "Enterprise";
@@ -89,10 +90,35 @@ function SummaryCard({
   );
 }
 
+function AccessDenied({ onBack }: { onBack: () => void }) {
+  return (
+    <div className="min-h-[70vh] flex items-center justify-center">
+      <div className="max-w-xl w-full rounded-2xl border border-red-500/20 bg-red-500/5 p-8">
+        <h1 className="text-3xl font-bold text-white mb-3">Access denied</h1>
+        <p className="text-sm text-gray-300 mb-6">
+          This page is available to admin users only. Org users should not access
+          the Organizations management view.
+        </p>
+
+        <button
+          type="button"
+          onClick={onBack}
+          className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 transition text-white"
+        >
+          Back to dashboard
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function OrganizationsPage() {
   const router = useRouter();
+  const { userProfile, profileLoading } = useAuth();
   const { orgs, currentOrg, setCurrentOrg, orgsLoading, orgsSource, orgsError } =
     useOrg();
+
+  const isAdmin = userProfile?.role === "admin";
 
   const [q, setQ] = useState("");
   const [sortKey, setSortKey] = useState<"name" | "total" | "last7d">("name");
@@ -159,6 +185,7 @@ export default function OrganizationsPage() {
   };
 
   useEffect(() => {
+    if (!isAdmin) return;
     if (orgsLoading) return;
     if (!orgs?.length) return;
     if (orgsSource !== "api") return;
@@ -167,7 +194,7 @@ export default function OrganizationsPage() {
     fetchStats(controller.signal);
     return () => controller.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orgsLoading, orgsSource, orgs]);
+  }, [isAdmin, orgsLoading, orgsSource, orgs]);
 
   const rows: OrgRow[] = useMemo(() => {
     return orgs.map((o) => {
@@ -234,6 +261,18 @@ export default function OrganizationsPage() {
     const controller = new AbortController();
     await fetchStats(controller.signal);
   };
+
+  if (profileLoading) {
+    return (
+      <div className="min-h-[70vh] flex items-center justify-center text-purple-200">
+        Loading organizations access...
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return <AccessDenied onBack={() => router.replace("/dashboard")} />;
+  }
 
   return (
     <div className="space-y-8">

@@ -8,7 +8,13 @@ import {
 
 export const runtime = "nodejs";
 
-const backendBaseUrl = process.env.BACKEND_URL;
+function getBackendBaseUrl() {
+  return (
+    process.env.BACKEND_URL ||
+    process.env.NEXT_PUBLIC_BACKEND_URL ||
+    ""
+  ).trim();
+}
 
 function computeDateRange(range: string): { from?: string; to?: string } {
   const now = new Date();
@@ -152,15 +158,23 @@ function mapReportItem(r: any) {
 
 function matchesPlatform(report: any, platformFilter: string) {
   if (!platformFilter) return true;
-  return (report.platform ?? "").trim().toLowerCase() === platformFilter.trim().toLowerCase();
+  return (
+    (report.platform ?? "").trim().toLowerCase() ===
+    platformFilter.trim().toLowerCase()
+  );
 }
 
 function matchesClassification(report: any, classificationFilter: string) {
   if (!classificationFilter) return true;
-  return (report.classification ?? "").trim().toLowerCase() === classificationFilter.trim().toLowerCase();
+  return (
+    (report.classification ?? "").trim().toLowerCase() ===
+    classificationFilter.trim().toLowerCase()
+  );
 }
 
 export async function GET(req: NextRequest) {
+  const backendBaseUrl = getBackendBaseUrl();
+
   if (!backendBaseUrl) {
     return NextResponse.json(
       { error: "BACKEND_URL is not configured" },
@@ -269,7 +283,7 @@ export async function GET(req: NextRequest) {
       return true;
     });
 
-    const total = filteredResults.length;
+    const total = getTotalCount(data, filteredResults);
     const paginatedResults = filteredResults.slice(offset, offset + limit);
 
     return NextResponse.json({
