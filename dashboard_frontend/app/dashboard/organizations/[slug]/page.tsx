@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useOrg } from "@/app/context/OrgContext";
+import { useAuth } from "@/app/context/AuthContext";
 import { motion } from "framer-motion";
 import {
   LineChart,
@@ -114,12 +115,49 @@ function getCategoryLabel(category?: string | null) {
   return "Mixed / other";
 }
 
+function AccessDenied({
+  onBack,
+  onGoToOwnOrg,
+}: {
+  onBack: () => void;
+  onGoToOwnOrg?: () => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <h1 className="text-3xl font-bold text-purple-100">Access denied</h1>
+      <p className="text-purple-400 max-w-2xl">
+        You do not have permission to open this organization view.
+      </p>
+
+      <div className="flex flex-wrap gap-3">
+        <button
+          onClick={onBack}
+          className="px-4 py-2 rounded-lg bg-purple-600 text-white text-sm hover:bg-purple-500 transition"
+        >
+          Back to dashboard
+        </button>
+
+        {onGoToOwnOrg ? (
+          <button
+            onClick={onGoToOwnOrg}
+            className="px-4 py-2 rounded-lg border border-purple-700 text-purple-200 text-sm hover:bg-purple-900/30 transition"
+          >
+            Open my organization
+          </button>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 export default function OrgDashboardPage() {
   const params = useParams<{ slug: string }>();
   const slug = (params?.slug as string) || "";
   const router = useRouter();
 
+  const { userProfile, profileLoading } = useAuth();
   const { orgs, currentOrg, setCurrentOrg, orgsLoading, orgsSource } = useOrg();
+
   const [org, setOrg] = useState<typeof currentOrg>(null);
 
   const [stats, setStats] = useState<OrgStats | null>(null);
@@ -132,7 +170,10 @@ export default function OrgDashboardPage() {
 
   const [dateRange, setDateRange] = useState<"7d" | "30d" | "all">("7d");
 
-  const foundOrg = useMemo(() => {
+  const isAdmin = userProfile?.role === "admin";
+  const isOrgUser = userProfile?.role === "org_user";
+
+  const foundOrgForAdmin = useMemo(() => {
     if (!slug) return null;
 
     let found = orgs.find((o) => o.slug === slug);
@@ -145,19 +186,73 @@ export default function OrgDashboardPage() {
     return found || null;
   }, [orgs, slug]);
 
-  useEffect(() => {
-    if (orgsLoading) return;
-    setOrg(foundOrg);
+  const assignedOrgForOrgUser = useMemo(() => {
+    if (!isOrgUser) return null;
+    if (currentOrg) return currentOrg;
+    if (orgs.length === 1) return orgs[0];
+    return null;
+  }, [isOrgUser, currentOrg, orgs]);
 
-    if (foundOrg && (!currentOrg || currentOrg.id !== foundOrg.id)) {
-      setCurrentOrg(foundOrg);
+  const access = useMemo(() => {
+    if (isAdmin) {
+      if (!foundOrgForAdmin) {
+        return {
+          allowed: false,
+          org: null,
+          reason: "not_found" as const,
+        };
+      }
+
+      return {
+        allowed: true,
+        org: foundOrgForAdmin,
+        reason: null,
+      };
     }
-  }, [orgsLoading, foundOrg, currentOrg?.id, setCurrentOrg]);
+
+    if (isOrgUser) {
+      if (!assignedOrgForOrgUser) {
+        return {
+          allowed: false,
+          org: null,
+          reason: "no_assigned_org" as const,
+        };
+      }
+
+      const assignedSlug =
+        assignedOrgForOrgUser.slug || slugifyFallback(assignedOrgForOrgUser.id);
+
+      const slugMatches =
+        slug === assignedSlug || slug === assignedOrgForOrgUser.id;
+
+      return {
+        allowed: slugMatches,
+        org: assignedOrgForOrgUser,
+        reason: slugMatches ? null : ("forbidden_other_org" as const),
+      };
+    }
+
+    return {
+      allowed: false,
+      org: null,
+      reason: "forbidden_role" as const,
+    };
+  }, [isAdmin, isOrgUser, foundOrgForAdmin, assignedOrgForOrgUser, slug]);
 
   useEffect(() => {
-    if (!org) return;
+    if (profileLoading || orgsLoading) return;
 
-    const orgId = org.id;
+    setOrg(access.org);
+
+    if (access.allowed && access.org && (!currentOrg || currentOrg.id !== access.org.id)) {
+      setCurrentOrg(access.org);
+    }
+  }, [profileLoading, orgsLoading, access, currentOrg?.id, setCurrentOrg]);
+
+  useEffect(() => {
+    if (!access.allowed || !access.org) return;
+
+    const orgId = access.org.id;
     const controller = new AbortController();
 
     async function fetchAll() {
@@ -224,36 +319,62 @@ export default function OrgDashboardPage() {
 
     fetchAll();
     return () => controller.abort();
-  }, [org?.id, dateRange]);
+  }, [access.allowed, access.org?.id, dateRange]);
 
-  if (orgsLoading) {
+  if (profileLoading || orgsLoading) {
     return (
       <div className="space-y-3">
         <h1 className="text-3xl font-bold text-purple-100">Loading…</h1>
         <p className="text-purple-400">
-          Loading organizations list from {orgsSource === "api" ? "API" : "fallback"}…
+          Loading organization access...
         </p>
         <div className="h-24 bg-purple-900/20 rounded-2xl animate-pulse" />
       </div>
     );
   }
 
+  if (!access.allowed) {
+    if (access.reason === "not_found") {
+      return (
+        <div className="space-y-4">
+          <h1 className="text-3xl font-bold text-purple-100">
+            Organization not found
+          </h1>
+          <p className="text-purple-400">
+            We couldn&apos;t find a workspace matching slug:{" "}
+            <span className="font-mono text-purple-200">{slug}</span>
+          </p>
+          <button
+            onClick={() => router.push("/dashboard/organizations")}
+            className="px-4 py-2 rounded-lg bg-purple-600 text-white text-sm hover:bg-purple-500 transition"
+          >
+            Back to organizations
+          </button>
+        </div>
+      );
+    }
+
+    const ownOrgSlug =
+      assignedOrgForOrgUser &&
+      (assignedOrgForOrgUser.slug || slugifyFallback(assignedOrgForOrgUser.id));
+
+    return (
+      <AccessDenied
+        onBack={() => router.push("/dashboard")}
+        onGoToOwnOrg={
+          ownOrgSlug
+            ? () => router.push(`/dashboard/organizations/${ownOrgSlug}`)
+            : undefined
+        }
+      />
+    );
+  }
+
   if (!org) {
     return (
       <div className="space-y-4">
-        <h1 className="text-3xl font-bold text-purple-100">
-          Organization not found
-        </h1>
-        <p className="text-purple-400">
-          We couldn&apos;t find a workspace matching slug:{" "}
-          <span className="font-mono text-purple-200">{slug}</span>
-        </p>
-        <button
-          onClick={() => router.push("/dashboard/organizations")}
-          className="px-4 py-2 rounded-lg bg-purple-600 text-white text-sm hover:bg-purple-500 transition"
-        >
-          Back to organizations
-        </button>
+        <h1 className="text-3xl font-bold text-purple-100">Loading…</h1>
+        <p className="text-purple-400">Preparing organization view...</p>
       </div>
     );
   }

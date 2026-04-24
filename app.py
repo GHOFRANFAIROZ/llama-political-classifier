@@ -32,6 +32,11 @@ from dedupe_utils import (
 from firestore_utils import (
     save_org_report,
     save_public_report,
+    create_org_request,
+    list_org_requests,
+    get_org_request,
+    update_org_request_status,
+    upsert_user_profile,
 )
 
 from org_manager import OrgManager
@@ -127,7 +132,7 @@ COMMON_HEADERS = [
 # Firestore Setup
 # ================================
 from firebase_admin_setup import db
-from firebase_admin import firestore
+from firebase_admin import firestore, auth as firebase_auth
 
 
 # ================================
@@ -135,6 +140,58 @@ from firebase_admin import firestore
 # ================================
 org_manager = OrgManager()
 
+# ================================
+# Auth Helpers (Patch 6)
+# ================================
+def _extract_bearer_token():
+    auth_header = (request.headers.get("Authorization") or "").strip()
+    if not auth_header.lower().startswith("bearer "):
+        return None
+    token = auth_header.split(" ", 1)[1].strip()
+    return token or None
+
+
+def _get_auth_context():
+    token = _extract_bearer_token()
+    if not token:
+        return None, (jsonify({"error": "Missing Authorization bearer token"}), 401)
+
+    try:
+        decoded = firebase_auth.verify_id_token(token)
+    except Exception as e:
+        logger.warning(f"[AUTH] invalid token: {e}")
+        return None, (jsonify({"error": "Invalid or expired auth token"}), 401)
+
+    uid = str(decoded.get("uid") or "").strip()
+    email = str(decoded.get("email") or "").strip().lower()
+
+    if not uid or not email:
+        return None, (jsonify({"error": "Token missing uid/email"}), 401)
+
+    profile_snap = db.collection("users").document(uid).get()
+    if not profile_snap.exists:
+        return None, (jsonify({"error": "User profile not found in Firestore"}), 403)
+
+    profile = profile_snap.to_dict() or {}
+    if profile.get("status") != "active":
+        return None, (jsonify({"error": "User account is not active"}), 403)
+
+    return {
+        "uid": uid,
+        "email": email,
+        "profile": profile,
+    }, None
+
+
+def _require_admin_context():
+    ctx, err = _get_auth_context()
+    if err:
+        return None, err
+
+    if ctx["profile"].get("role") != "admin":
+        return None, (jsonify({"error": "Admin access required"}), 403)
+
+    return ctx, None
 
 # ================================
 # Hate Speech Categories
@@ -901,6 +958,236 @@ def list_organizations():
         logger.error(f"req={getattr(request, 'request_id', 'unknown')} [ORGS ERROR] {e}", exc_info=True)
         return jsonify({"error": "Internal server error"}), 500
 
+
+# ================================
+# ORG REQUESTS / ADMIN ONBOARDING
+# ================================
+@app.route("/org_requests", methods=["POST"])
+def create_org_request_route():
+    try:
+        data = request.get_json(silent=True) or {}
+
+        requester_email = str(data.get("requester_email") or "").strip().lower()
+        organization_name = str(data.get("organization_name") or "").strip()
+        country = str(data.get("country") or "").strip() or None
+        message = str(data.get("message") or "").strip() or None
+        requested_plan = str(data.get("requested_plan") or "Free").strip()
+
+        if not requester_email or "@" not in requester_email:
+            return jsonify({"error": "requester_email is required"}), 400
+
+        if not organization_name:
+            return jsonify({"error": "organization_name is required"}), 400
+
+        org_id_preview = org_manager.normalize_name(organization_name)
+        organization_slug = org_manager.make_slug(organization_name)
+
+        if org_manager.org_exists(org_id_preview):
+            return jsonify({
+                "error": "Organization already exists",
+                "org_id": org_id_preview,
+                "organization_slug": organization_slug,
+            }), 409
+
+        created = create_org_request(
+            requester_email=requester_email,
+            organization_name=organization_name,
+            organization_slug=organization_slug,
+            org_id_preview=org_id_preview,
+            country=country,
+            message=message,
+            requested_plan=requested_plan,
+        )
+
+        return jsonify({
+            "ok": True,
+            "request": created,
+        }), 201
+
+    except Exception as e:
+        logger.error(f"[CREATE ORG REQUEST ERROR] {e}", exc_info=True)
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@app.route("/admin/org_requests", methods=["GET"])
+def list_org_requests_route():
+    admin_ctx, err = _require_admin_context()
+    if err:
+        return err
+
+    try:
+        status = str(request.args.get("status") or "").strip() or None
+        limit = int(request.args.get("limit", 50))
+        limit = max(1, min(limit, 200))
+
+        items = list_org_requests(status=status, limit=limit)
+
+        return jsonify({
+            "ok": True,
+            "results": items,
+            "total": len(items),
+            "admin_email": admin_ctx["email"],
+        }), 200
+
+    except Exception as e:
+        logger.error(f"[LIST ORG REQUESTS ERROR] {e}", exc_info=True)
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@app.route("/admin/org_requests/<request_id>/approve", methods=["POST"])
+def approve_org_request_route(request_id):
+    admin_ctx, err = _require_admin_context()
+    if err:
+        return err
+
+    try:
+        data = request.get_json(silent=True) or {}
+        review_note = str(data.get("review_note") or "").strip() or None
+
+        req_doc = get_org_request(request_id)
+        if not req_doc:
+            return jsonify({"error": "Request not found"}), 404
+
+        if req_doc.get("status") != "pending":
+            return jsonify({
+                "error": "Only pending requests can be approved",
+                "current_status": req_doc.get("status"),
+            }), 409
+
+        organization_name = str(req_doc.get("organization_name") or "").strip()
+        requester_email = str(req_doc.get("requester_email") or "").strip().lower()
+        country = req_doc.get("country")
+        requested_plan = str(req_doc.get("requested_plan") or "Free").strip()
+
+        if requested_plan not in {"Free", "Pro", "Enterprise"}:
+            requested_plan = "Free"
+
+        org_id = str(
+            req_doc.get("org_id_preview")
+            or org_manager.normalize_name(organization_name)
+        ).strip()
+
+        organization_slug = str(
+            req_doc.get("organization_slug")
+            or org_manager.make_slug(organization_name)
+        ).strip()
+
+        if not organization_name or not org_id:
+            return jsonify({"error": "Request is missing organization data"}), 400
+
+        org_ref = db.collection("organizations").document(org_id)
+        org_snap = org_ref.get()
+
+        if not org_snap.exists:
+            org_manager.create_organization(org_id, organization_name)
+
+        org_payload = {
+            "org_id": org_id,
+            "display_name": organization_name,
+            "slug": organization_slug,
+            "plan": requested_plan,
+            "country": country,
+            "status": "active",
+            "updated_at": firestore.SERVER_TIMESTAMP,
+        }
+
+        if not org_snap.exists:
+            org_payload["created_at"] = firestore.SERVER_TIMESTAMP
+
+        org_ref.set(org_payload, merge=True)
+
+        linked_user_uid = None
+        user_profile_created = False
+
+        if requester_email:
+            try:
+                auth_user = firebase_auth.get_user_by_email(requester_email)
+                linked_user_uid = auth_user.uid
+
+                upsert_user_profile(
+                    uid=auth_user.uid,
+                    email=requester_email,
+                    role="org_user",
+                    org_id=org_id,
+                    status="active",
+                )
+                user_profile_created = True
+
+            except firebase_auth.UserNotFoundError:
+                logger.warning(
+                    f"[APPROVE ORG REQUEST] requester email not found in Firebase Auth: {requester_email}"
+                )
+            except Exception as e:
+                logger.warning(
+                    f"[APPROVE ORG REQUEST] user profile provisioning failed: {e}",
+                    exc_info=True,
+                )
+
+        updated_request = update_org_request_status(
+            request_id,
+            status="approved",
+            reviewed_by_uid=admin_ctx["uid"],
+            reviewed_by_email=admin_ctx["email"],
+            org_id=org_id,
+            review_note=review_note,
+            linked_user_uid=linked_user_uid,
+            user_profile_created=user_profile_created,
+        )
+
+        return jsonify({
+            "ok": True,
+            "request": updated_request,
+            "organization": {
+                "org_id": org_id,
+                "slug": organization_slug,
+                "display_name": organization_name,
+                "plan": requested_plan,
+            },
+            "linked_user_uid": linked_user_uid,
+            "user_profile_created": user_profile_created,
+        }), 200
+
+    except Exception as e:
+        logger.error(f"[APPROVE ORG REQUEST ERROR] {e}", exc_info=True)
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@app.route("/admin/org_requests/<request_id>/reject", methods=["POST"])
+def reject_org_request_route(request_id):
+    admin_ctx, err = _require_admin_context()
+    if err:
+        return err
+
+    try:
+        data = request.get_json(silent=True) or {}
+        review_note = str(data.get("review_note") or "").strip() or None
+
+        req_doc = get_org_request(request_id)
+        if not req_doc:
+            return jsonify({"error": "Request not found"}), 404
+
+        if req_doc.get("status") != "pending":
+            return jsonify({
+                "error": "Only pending requests can be rejected",
+                "current_status": req_doc.get("status"),
+            }), 409
+
+        updated_request = update_org_request_status(
+            request_id,
+            status="rejected",
+            reviewed_by_uid=admin_ctx["uid"],
+            reviewed_by_email=admin_ctx["email"],
+            review_note=review_note,
+        )
+
+        return jsonify({
+            "ok": True,
+            "request": updated_request,
+        }), 200
+
+    except Exception as e:
+        logger.error(f"[REJECT ORG REQUEST ERROR] {e}", exc_info=True)
+        return jsonify({"error": "Internal server error"}), 500
 
 # ==============================
 # RUN SERVER

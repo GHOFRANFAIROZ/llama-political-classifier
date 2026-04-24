@@ -1019,3 +1019,429 @@ def search_public_reports(
 
     logger.info("[SEARCH PUBLIC] done results=%s total=%s", len(results), total)
     return {"results": results, "total": int(total)}
+# =========================
+# Org Requests / Onboarding (Patch 6)
+# =========================
+def _org_requests_collection():
+    return db.collection("org_requests")
+
+
+def _users_collection():
+    return db.collection("users")
+
+
+def _safe_text(v: Any) -> Optional[str]:
+    if v is None:
+        return None
+    s = str(v).strip()
+    return s or None
+
+
+def create_org_request(
+    requester_email: str,
+    organization_name: str,
+    organization_slug: str,
+    org_id_preview: Optional[str] = None,
+    country: Optional[str] = None,
+    message: Optional[str] = None,
+    requested_plan: str = "Free",
+) -> Dict[str, Any]:
+    requester_email = (requester_email or "").strip().lower()
+    organization_name = (organization_name or "").strip()
+    organization_slug = (organization_slug or "").strip()
+    requested_plan = (requested_plan or "Free").strip()
+
+    if requested_plan not in {"Free", "Pro", "Enterprise"}:
+        requested_plan = "Free"
+
+    ref = _org_requests_collection().document()
+
+    payload = {
+        "request_id": ref.id,
+        "requester_email": requester_email,
+        "organization_name": organization_name,
+        "organization_slug": organization_slug,
+        "org_id_preview": _safe_text(org_id_preview),
+        "country": _safe_text(country),
+        "message": _safe_text(message),
+        "requested_plan": requested_plan,
+        "status": "pending",
+        "created_at": firestore.SERVER_TIMESTAMP,
+        "reviewed_at": None,
+        "reviewed_by_uid": None,
+        "reviewed_by_email": None,
+        "review_note": None,
+        "org_id": None,
+        "linked_user_uid": None,
+        "user_profile_created": False,
+    }
+
+    ref.set(payload)
+
+    return {
+        "id": ref.id,
+        "request_id": ref.id,
+        "requester_email": requester_email,
+        "organization_name": organization_name,
+        "organization_slug": organization_slug,
+        "org_id_preview": _safe_text(org_id_preview),
+        "country": _safe_text(country),
+        "message": _safe_text(message),
+        "requested_plan": requested_plan,
+        "status": "pending",
+    }
+
+
+def get_org_request(request_id: str) -> Optional[Dict[str, Any]]:
+    snap = _org_requests_collection().document(request_id).get()
+    if not snap.exists:
+        return None
+
+    data = snap.to_dict() or {}
+    data["id"] = snap.id
+    data["request_id"] = data.get("request_id") or snap.id
+    data["created_at"] = _to_iso(data.get("created_at"))
+    data["reviewed_at"] = _to_iso(data.get("reviewed_at"))
+    return data
+
+
+def list_org_requests(status: Optional[str] = None, limit: int = 50) -> List[Dict[str, Any]]:
+    ref = _org_requests_collection()
+
+    if status:
+        ref = ref.where("status", "==", status)
+
+    try:
+        docs = list(
+            ref.order_by("created_at", direction=firestore.Query.DESCENDING)
+            .limit(int(limit))
+            .stream()
+        )
+    except Exception:
+        docs = list(ref.limit(int(limit)).stream())
+
+    out: List[Dict[str, Any]] = []
+    for d in docs:
+        data = d.to_dict() or {}
+        data["id"] = d.id
+        data["request_id"] = data.get("request_id") or d.id
+        data["created_at"] = _to_iso(data.get("created_at"))
+        data["reviewed_at"] = _to_iso(data.get("reviewed_at"))
+        out.append(data)
+
+    out.sort(
+        key=lambda x: _to_datetime(x.get("created_at")) or datetime(1970, 1, 1, tzinfo=timezone.utc),
+        reverse=True,
+    )
+    return out[: int(limit)]
+
+
+def update_org_request_status(
+    request_id: str,
+    *,
+    status: str,
+    reviewed_by_uid: Optional[str],
+    reviewed_by_email: Optional[str],
+    org_id: Optional[str] = None,
+    review_note: Optional[str] = None,
+    linked_user_uid: Optional[str] = None,
+    user_profile_created: Optional[bool] = None,
+) -> Dict[str, Any]:
+    if status not in {"approved", "rejected"}:
+        raise ValueError("status must be approved or rejected")
+
+    updates: Dict[str, Any] = {
+        "status": status,
+        "reviewed_at": firestore.SERVER_TIMESTAMP,
+        "reviewed_by_uid": _safe_text(reviewed_by_uid),
+        "reviewed_by_email": _safe_text(reviewed_by_email.lower() if reviewed_by_email else None),
+    }
+
+    if org_id is not None:
+        updates["org_id"] = _safe_text(org_id)
+
+    if review_note is not None:
+        updates["review_note"] = _safe_text(review_note)
+
+    if linked_user_uid is not None:
+        updates["linked_user_uid"] = _safe_text(linked_user_uid)
+
+    if user_profile_created is not None:
+        updates["user_profile_created"] = bool(user_profile_created)
+
+    _org_requests_collection().document(request_id).set(updates, merge=True)
+
+    result = get_org_request(request_id)
+    return result or {"id": request_id, "status": status}
+
+
+def upsert_user_profile(
+    uid: str,
+    email: str,
+    role: str,
+    org_id: Optional[str],
+    status: str = "active",
+) -> Dict[str, Any]:
+    uid = str(uid).strip()
+    email = (email or "").strip().lower()
+    role = (role or "").strip()
+    status = (status or "active").strip()
+
+    ref = _users_collection().document(uid)
+    snap = ref.get()
+
+    existing = snap.to_dict() or {}
+    existing_role = (existing.get("role") or "").strip()
+
+    # لا ننزّل admin إلى org_user بالخطأ
+    effective_role = existing_role if existing_role == "admin" and role != "admin" else role
+    effective_org_id = existing.get("org_id") if existing_role == "admin" and role != "admin" else org_id
+
+    payload: Dict[str, Any] = {
+        "email": email,
+        "role": effective_role,
+        "org_id": effective_org_id,
+        "status": status,
+        "updated_at": firestore.SERVER_TIMESTAMP,
+    }
+
+    if not snap.exists:
+        payload["created_at"] = firestore.SERVER_TIMESTAMP
+
+    ref.set(payload, merge=True)
+
+    return {
+        "uid": uid,
+        "email": email,
+        "role": effective_role,
+        "org_id": effective_org_id,
+        "status": status,
+    }
+
+# ================================
+# User Profiles (Patch 6)
+# ================================
+def upsert_user_profile(
+    uid: str,
+    email: str,
+    role: str,
+    org_id: Optional[str] = None,
+    status: str = "active",
+) -> Dict[str, Any]:
+    """
+    Creates or updates a Firestore user profile at users/{uid}.
+    """
+    uid = str(uid or "").strip()
+    email = str(email or "").strip().lower()
+    role = str(role or "").strip()
+    org_id = (str(org_id).strip() if org_id is not None else None)
+    status = str(status or "active").strip()
+
+    if not uid:
+        raise ValueError("uid is required")
+
+    if not email:
+        raise ValueError("email is required")
+
+    if role not in {"admin", "org_user"}:
+        raise ValueError("role must be 'admin' or 'org_user'")
+
+    doc_ref = db.collection("users").document(uid)
+    snap = doc_ref.get()
+
+    payload: Dict[str, Any] = {
+        "email": email,
+        "role": role,
+        "status": status,
+        "updated_at": firestore.SERVER_TIMESTAMP,
+    }
+
+    if org_id is not None:
+        payload["org_id"] = org_id
+
+    if not snap.exists:
+        payload["created_at"] = firestore.SERVER_TIMESTAMP
+
+    doc_ref.set(payload, merge=True)
+
+    saved = doc_ref.get()
+    data = saved.to_dict() or {}
+    data["uid"] = saved.id
+    data["created_at"] = _to_iso(data.get("created_at"))
+    data["updated_at"] = _to_iso(data.get("updated_at"))
+    return data
+
+
+# ================================
+# Organization Requests (Patch 6)
+# ================================
+def _normalize_org_request_doc(doc) -> Optional[Dict[str, Any]]:
+    if not doc or not doc.exists:
+        return None
+
+    data = doc.to_dict() or {}
+    data["id"] = doc.id
+    data["request_id"] = data.get("request_id") or doc.id
+    data["created_at"] = _to_iso(data.get("created_at"))
+    data["updated_at"] = _to_iso(data.get("updated_at"))
+    data["reviewed_at"] = _to_iso(data.get("reviewed_at"))
+    return data
+
+
+def create_org_request(
+    requester_email: str,
+    organization_name: str,
+    organization_slug: str,
+    org_id_preview: str,
+    country: Optional[str] = None,
+    message: Optional[str] = None,
+    requested_plan: str = "Free",
+) -> Dict[str, Any]:
+    """
+    Creates a pending organization request in Firestore.
+    Collection: org_requests
+    """
+    requester_email = str(requester_email or "").strip().lower()
+    organization_name = str(organization_name or "").strip()
+    organization_slug = str(organization_slug or "").strip()
+    org_id_preview = str(org_id_preview or "").strip()
+    requested_plan = str(requested_plan or "Free").strip()
+
+    if not requester_email:
+        raise ValueError("requester_email is required")
+    if not organization_name:
+        raise ValueError("organization_name is required")
+    if not organization_slug:
+        raise ValueError("organization_slug is required")
+    if not org_id_preview:
+        raise ValueError("org_id_preview is required")
+
+    if requested_plan not in {"Free", "Pro", "Enterprise"}:
+        requested_plan = "Free"
+
+    doc_ref = db.collection("org_requests").document()
+
+    payload: Dict[str, Any] = {
+        "request_id": doc_ref.id,
+        "requester_email": requester_email,
+        "organization_name": organization_name,
+        "organization_slug": organization_slug,
+        "org_id_preview": org_id_preview,
+        "country": country,
+        "message": message,
+        "requested_plan": requested_plan,
+        "status": "pending",
+        "review_note": None,
+        "reviewed_by_uid": None,
+        "reviewed_by_email": None,
+        "reviewed_at": None,
+        "org_id": None,
+        "linked_user_uid": None,
+        "user_profile_created": False,
+        "created_at": firestore.SERVER_TIMESTAMP,
+        "updated_at": firestore.SERVER_TIMESTAMP,
+    }
+
+    doc_ref.set(payload)
+    return _normalize_org_request_doc(doc_ref.get()) or {
+        "request_id": doc_ref.id,
+        "status": "pending",
+    }
+
+
+def get_org_request(request_id: str) -> Optional[Dict[str, Any]]:
+    request_id = str(request_id or "").strip()
+    if not request_id:
+        return None
+
+    doc = db.collection("org_requests").document(request_id).get()
+    return _normalize_org_request_doc(doc)
+
+
+def list_org_requests(
+    status: Optional[str] = None,
+    limit: int = 50,
+) -> List[Dict[str, Any]]:
+    """
+    Lists org requests. We avoid strict Firestore order_by requirements
+    and sort in Python to reduce index friction for now.
+    """
+    limit = max(1, min(int(limit), 200))
+
+    ref = db.collection("org_requests")
+    if status:
+        ref = ref.where("status", "==", str(status).strip())
+
+    docs = list(ref.stream())
+
+    items: List[Dict[str, Any]] = []
+    for doc in docs:
+        normalized = _normalize_org_request_doc(doc)
+        if normalized:
+            items.append(normalized)
+
+    def sort_key(item: Dict[str, Any]):
+        dt = _to_datetime(item.get("created_at"))
+        return dt or datetime(1970, 1, 1, tzinfo=timezone.utc)
+
+    items.sort(key=sort_key, reverse=True)
+    return items[:limit]
+
+
+def update_org_request_status(
+    request_id: str,
+    status: str,
+    reviewed_by_uid: Optional[str] = None,
+    reviewed_by_email: Optional[str] = None,
+    org_id: Optional[str] = None,
+    review_note: Optional[str] = None,
+    linked_user_uid: Optional[str] = None,
+    user_profile_created: Optional[bool] = None,
+) -> Optional[Dict[str, Any]]:
+    """
+    Updates an existing org request status.
+    Allowed status values: pending, approved, rejected
+    """
+    request_id = str(request_id or "").strip()
+    status = str(status or "").strip()
+
+    if not request_id:
+        raise ValueError("request_id is required")
+
+    if status not in {"pending", "approved", "rejected"}:
+        raise ValueError("status must be pending, approved, or rejected")
+
+    doc_ref = db.collection("org_requests").document(request_id)
+    snap = doc_ref.get()
+
+    if not snap.exists:
+        return None
+
+    payload: Dict[str, Any] = {
+        "status": status,
+        "updated_at": firestore.SERVER_TIMESTAMP,
+    }
+
+    if reviewed_by_uid is not None:
+        payload["reviewed_by_uid"] = str(reviewed_by_uid).strip() or None
+
+    if reviewed_by_email is not None:
+        payload["reviewed_by_email"] = str(reviewed_by_email).strip().lower() or None
+
+    if review_note is not None:
+        payload["review_note"] = str(review_note).strip() or None
+
+    if org_id is not None:
+        payload["org_id"] = str(org_id).strip() or None
+
+    if linked_user_uid is not None:
+        payload["linked_user_uid"] = str(linked_user_uid).strip() or None
+
+    if user_profile_created is not None:
+        payload["user_profile_created"] = bool(user_profile_created)
+
+    if status in {"approved", "rejected"}:
+        payload["reviewed_at"] = firestore.SERVER_TIMESTAMP
+
+    doc_ref.set(payload, merge=True)
+    return _normalize_org_request_doc(doc_ref.get())
