@@ -1,7 +1,7 @@
 "use client";
 export const dynamic = "force-dynamic";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useOrg, Org } from "@/app/context/OrgContext";
 import { useAuth } from "@/app/context/AuthContext";
@@ -129,60 +129,67 @@ export default function OrganizationsPage() {
   const [statsError, setStatsError] = useState<string | null>(null);
   const [statsLastSyncedAt, setStatsLastSyncedAt] = useState<string | null>(null);
 
-  const fetchStats = async (signal?: AbortSignal) => {
-    if (!orgs?.length) return;
-    if (orgsSource !== "api") return;
+  const fetchStats = useCallback(
+    async (signal?: AbortSignal) => {
+      if (!isAdmin) return;
+      if (!orgs?.length) return;
+      if (orgsSource !== "api") return;
 
-    setStatsLoading(true);
-    setStatsError(null);
+      setStatsLoading(true);
+      setStatsError(null);
 
-    try {
-      const settled = await Promise.allSettled(
-        orgs.map(async (o) => {
-          const url = `/api/org/${encodeURIComponent(o.id)}/stats?date_range=7d`;
-          const res = await fetch(url, { cache: "no-store", signal });
+      try {
+        const settled = await Promise.allSettled(
+          orgs.map(async (o) => {
+            const url = `/api/org/${encodeURIComponent(o.id)}/stats?date_range=7d`;
+            const res = await fetch(url, { cache: "no-store", signal });
 
-          if (!res.ok) {
-            const text = await res.text().catch(() => "");
-            throw new Error(`stats failed for ${o.id}: ${res.status} ${text}`);
-          }
+            if (!res.ok) {
+              const text = await res.text().catch(() => "");
+              throw new Error(`stats failed for ${o.id}: ${res.status} ${text}`);
+            }
 
-          const json = (await res.json()) as Partial<OrgStats>;
+            const json = (await res.json()) as Partial<OrgStats>;
 
-          const stats: OrgStats = {
-            totalReports: Number(json.totalReports ?? 0),
-            last7dReports: Number(json.last7dReports ?? 0),
-            activeUsers: json.activeUsers == null ? null : Number(json.activeUsers),
-            hateSpeechRatio: Number(json.hateSpeechRatio ?? 0),
-            mostToxicPlatform: (json.mostToxicPlatform ?? null) as string | null,
-            timeToFirstReviewHours: (json.timeToFirstReviewHours ?? null) as number | null,
-          };
+            const stats: OrgStats = {
+              totalReports: Number(json.totalReports ?? 0),
+              last7dReports: Number(json.last7dReports ?? 0),
+              activeUsers: json.activeUsers == null ? null : Number(json.activeUsers),
+              hateSpeechRatio: Number(json.hateSpeechRatio ?? 0),
+              mostToxicPlatform: (json.mostToxicPlatform ?? null) as string | null,
+              timeToFirstReviewHours:
+                (json.timeToFirstReviewHours ?? null) as number | null,
+            };
 
-          return { orgId: o.id, stats };
-        })
-      );
+            return { orgId: o.id, stats };
+          })
+        );
 
-      const next: Record<string, OrgStats> = {};
-      let failed = 0;
+        const next: Record<string, OrgStats> = {};
+        let failed = 0;
 
-      for (const r of settled) {
-        if (r.status === "fulfilled") next[r.value.orgId] = r.value.stats;
-        else failed++;
+        for (const r of settled) {
+          if (r.status === "fulfilled") next[r.value.orgId] = r.value.stats;
+          else failed++;
+        }
+
+        setStatsByOrgId(next);
+        setStatsLastSyncedAt(new Date().toISOString());
+
+        if (failed) {
+          setStatsError(
+            `Some organization stats failed to load (${failed}/${settled.length}).`
+          );
+        }
+      } catch (e: any) {
+        if (e?.name === "AbortError") return;
+        setStatsError(e?.message ?? "Failed to load organization stats");
+      } finally {
+        setStatsLoading(false);
       }
-
-      setStatsByOrgId(next);
-      setStatsLastSyncedAt(new Date().toISOString());
-
-      if (failed) {
-        setStatsError(`Some organization stats failed to load (${failed}/${settled.length}).`);
-      }
-    } catch (e: any) {
-      if (e?.name === "AbortError") return;
-      setStatsError(e?.message ?? "Failed to load organization stats");
-    } finally {
-      setStatsLoading(false);
-    }
-  };
+    },
+    [isAdmin, orgs, orgsSource]
+  );
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -191,10 +198,10 @@ export default function OrganizationsPage() {
     if (orgsSource !== "api") return;
 
     const controller = new AbortController();
-    fetchStats(controller.signal);
+    void fetchStats(controller.signal);
+
     return () => controller.abort();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAdmin, orgsLoading, orgsSource, orgs]);
+  }, [isAdmin, orgsLoading, orgsSource, orgs, fetchStats]);
 
   const rows: OrgRow[] = useMemo(() => {
     return orgs.map((o) => {
@@ -232,7 +239,9 @@ export default function OrganizationsPage() {
 
     list.sort((a, b) => {
       if (sortKey === "name") return a.name.localeCompare(b.name) * dir;
-      if (sortKey === "total") return ((a.totalReports ?? -1) - (b.totalReports ?? -1)) * dir;
+      if (sortKey === "total") {
+        return ((a.totalReports ?? -1) - (b.totalReports ?? -1)) * dir;
+      }
       return ((a.reportsLast7d ?? -1) - (b.reportsLast7d ?? -1)) * dir;
     });
 
@@ -282,14 +291,18 @@ export default function OrganizationsPage() {
             <h1 className="text-4xl font-bold text-purple-100">Organizations</h1>
             <p className="text-purple-400 mt-2 max-w-3xl">
               Browse connected workspaces, review activity levels, and open each
-              organization’s dashboard context.
+              organization&apos;s dashboard context.
             </p>
 
             <div className="mt-3 flex flex-wrap items-center gap-3">
               <span className="text-xs text-purple-500">
                 Source:{" "}
                 <span className="font-semibold text-emerald-300">
-                  {orgsLoading ? "Loading…" : orgsSource === "api" ? "API / Firestore" : "Unavailable"}
+                  {orgsLoading
+                    ? "Loading…"
+                    : orgsSource === "api"
+                    ? "API / Firestore"
+                    : "Unavailable"}
                 </span>
               </span>
 
@@ -324,10 +337,10 @@ export default function OrganizationsPage() {
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.98 }}
               onClick={handleRefreshStats}
-              disabled={orgsLoading || orgsSource !== "api"}
+              disabled={orgsLoading || orgsSource !== "api" || statsLoading}
               className="px-4 py-2 rounded-xl bg-purple-600/80 border border-purple-400/30 text-white text-sm hover:bg-purple-600 disabled:opacity-60 transition shadow-[0_0_18px_rgba(176,92,255,0.25)]"
             >
-              Refresh stats
+              {statsLoading ? "Refreshing..." : "Refresh stats"}
             </motion.button>
           </div>
         </div>
@@ -345,7 +358,9 @@ export default function OrganizationsPage() {
           <div className="flex items-center gap-2">
             <select
               value={sortKey}
-              onChange={(e) => setSortKey(e.target.value as "name" | "total" | "last7d")}
+              onChange={(e) =>
+                setSortKey(e.target.value as "name" | "total" | "last7d")
+              }
               className="bg-[#120F18] border border-purple-900/50 rounded-xl px-3 py-2 text-xs text-purple-200"
             >
               <option value="name">Sort: Name</option>
@@ -394,7 +409,7 @@ export default function OrganizationsPage() {
             Organizations overview
           </h2>
           <span className="text-xs text-purple-400">
-            Click any row to open that organization’s dashboard view.
+            Click any row to open that organization&apos;s dashboard view.
           </span>
         </div>
 

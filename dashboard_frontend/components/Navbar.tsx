@@ -218,7 +218,7 @@ function NavbarContent() {
     return (
       <>
         {before}
-        <span className="font-semibold text-purple-100">{mid}</span>
+        <span className="font-semibold text-white">{mid}</span>
         {after}
       </>
     );
@@ -295,185 +295,191 @@ function NavbarContent() {
       initial={{ y: -20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.4 }}
-      className="w-full h-16 border-b border-purple-900/40 bg-[#0C0A12]/80 backdrop-blur-xl flex items-center justify-between px-6 shadow-[0_0_25px_rgba(138,43,226,0.25)]"
+      className="w-full border-b border-purple-900/40 bg-[#0C0A12]/80 backdrop-blur-xl px-4 py-3 sm:px-6 shadow-[0_0_25px_rgba(138,43,226,0.25)]"
     >
-      <div className="text-xl font-semibold text-purple-200 tracking-tight flex items-center gap-3">
-        <span className="text-purple-400 animate-pulse">●</span>
-        <span>Anti-Hate Monitor</span>
+      <div className="flex w-full flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+        <div className="min-w-0 flex flex-wrap items-center gap-2 text-xl font-semibold tracking-tight text-purple-100">
+          <span className="text-purple-400 animate-pulse">●</span>
+          <span className="truncate">Anti-Hate Monitor</span>
 
-        {currentOrg && (
-          <span className="text-xs font-normal text-purple-400 px-2 py-0.5 rounded-full border border-purple-700/60 bg-black/30">
-            Workspace:&nbsp;
-            <span className="text-purple-100">{currentOrg.name}</span>
+          {currentOrg && (
+            <span className="hidden lg:inline-flex max-w-[220px] truncate text-xs font-normal text-purple-200 px-2 py-0.5 rounded-full border border-purple-700/60 bg-black/30">
+              Workspace:&nbsp;
+              <span className="truncate text-white">{currentOrg.name}</span>
+            </span>
+          )}
+
+          <span className="hidden xl:inline-flex text-[10px] text-purple-200 border border-purple-900/50 bg-black/20 px-2 py-0.5 rounded-full">
+            {isAdmin ? "Admin" : role === "org_user" ? "Org User" : "Unknown"}
           </span>
-        )}
 
-        <span className="hidden md:inline text-[10px] text-purple-500 border border-purple-900/50 bg-black/20 px-2 py-0.5 rounded-full">
-          {isAdmin ? "Admin" : role === "org_user" ? "Org User" : "Unknown"}
-        </span>
+          <span className="hidden 2xl:inline-flex text-[10px] text-purple-300 border border-purple-900/50 bg-black/20 px-2 py-0.5 rounded-full">
+            {orgsLoading ? "Loading orgs…" : orgsSource === "api" ? "API" : "Fallback"}
+          </span>
+        </div>
 
-        <span className="hidden md:inline text-[10px] text-purple-500 border border-purple-900/50 bg-black/20 px-2 py-0.5 rounded-full">
-          {orgsLoading ? "Loading orgs…" : orgsSource === "api" ? "API" : "Fallback"}
-        </span>
-      </div>
+        <div className="order-3 xl:order-2 w-full xl:max-w-xl" ref={dropdownRef}>
+          <div className="relative w-full">
+            <input
+              ref={inputRef}
+              type="text"
+              placeholder={scope === "org" ? "Search inside org..." : "Search public..."}
+              value={searchValue}
+              onChange={(e) => {
+                setSearchValue(e.target.value);
+                setShowSuggestions(true);
+                setActiveIdx(-1);
+              }}
+              onFocus={() => setShowSuggestions(true)}
+              onKeyDown={onSearchKey}
+              className="w-full bg-[#120F18] border border-purple-900/40 rounded-xl px-4 py-2 text-sm text-purple-100 placeholder-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
+            />
 
-      <div className="relative w-96 max-w-lg" ref={dropdownRef}>
-        <input
-          ref={inputRef}
-          type="text"
-          placeholder={scope === "org" ? "Search inside org..." : "Search public..."}
-          value={searchValue}
-          onChange={(e) => {
-            setSearchValue(e.target.value);
-            setShowSuggestions(true);
-            setActiveIdx(-1);
-          }}
-          onFocus={() => setShowSuggestions(true)}
-          onKeyDown={onSearchKey}
-          className="w-full bg-[#120F18] border border-purple-900/40 rounded-xl px-4 py-2 text-sm text-purple-200 placeholder-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
-        />
+            <MagnifyingGlassIcon
+              className="w-5 h-5 text-purple-300 absolute right-3 top-2.5 cursor-pointer hover:text-white transition"
+              onClick={() => triggerSearch()}
+            />
 
-        <MagnifyingGlassIcon
-          className="w-5 h-5 text-purple-400 absolute right-3 top-2.5 cursor-pointer hover:text-purple-300 transition"
-          onClick={() => triggerSearch()}
-        />
+            {showSuggestions && (
+              <div className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-xl border border-purple-900/40 bg-[#0F0C16] shadow-[0_0_25px_rgba(138,43,226,0.18)]">
+                {loadingSug && (
+                  <div className="px-4 py-3 space-y-2">
+                    <div className="h-3 rounded bg-purple-900/30 animate-pulse" />
+                    <div className="h-3 rounded bg-purple-900/20 animate-pulse" />
+                  </div>
+                )}
 
-        {showSuggestions && (
-          <div className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-xl border border-purple-900/40 bg-[#0F0C16] shadow-[0_0_25px_rgba(138,43,226,0.18)]">
-            {loadingSug && (
-              <div className="px-4 py-3 space-y-2">
-                <div className="h-3 rounded bg-purple-900/30 animate-pulse" />
-                <div className="h-3 rounded bg-purple-900/20 animate-pulse" />
+                {!loadingSug && mergedSuggestions.length === 0 && (
+                  <div className="px-4 py-3 text-sm text-purple-300">
+                    No suggestions — press{" "}
+                    <span className="text-white font-semibold">Enter</span> to search.
+                  </div>
+                )}
+
+                {!loadingSug &&
+                  mergedSuggestions.map((s, idx) => (
+                    <button
+                      key={`${s.source}-${s.text}-${idx}`}
+                      type="button"
+                      onMouseEnter={() => setActiveIdx(idx)}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => triggerSearch(s.text)}
+                      className={[
+                        "flex w-full items-center justify-between px-4 py-2 text-left text-sm transition",
+                        idx === activeIdx
+                          ? "bg-purple-900/30"
+                          : "bg-transparent hover:bg-purple-900/20",
+                      ].join(" ")}
+                    >
+                      <span className="truncate text-purple-100">
+                        {s.source === "search" ? (
+                          <>
+                            <span className="text-purple-300 mr-2">Search for</span>
+                            {renderHighlighted(s.text, searchValue)}
+                          </>
+                        ) : (
+                          renderHighlighted(s.text, searchValue)
+                        )}
+                      </span>
+
+                      <span className="ml-3 shrink-0 text-[10px] text-purple-300 border border-purple-900/40 bg-black/20 px-2 py-0.5 rounded-full">
+                        {s.source === "recent"
+                          ? "Recent"
+                          : s.source === "search"
+                          ? "Enter"
+                          : "Suggest"}
+                      </span>
+                    </button>
+                  ))}
+
+                <div className="px-4 py-2 text-[10px] text-purple-400 border-t border-purple-900/30">
+                  ↑↓ to navigate • Enter to search • Esc to close
+                </div>
               </div>
             )}
+          </div>
+        </div>
 
-            {!loadingSug && mergedSuggestions.length === 0 && (
-              <div className="px-4 py-3 text-sm text-purple-400/80">
-                No suggestions — press{" "}
-                <span className="text-purple-200 font-semibold">Enter</span> to search.
+        <div className="order-2 xl:order-3 flex flex-wrap items-center justify-end gap-3 relative">
+          {isAdmin ? (
+            <div className="hidden lg:flex flex-col items-start">
+              <span className="text-[10px] uppercase tracking-wide text-purple-400 mb-0.5">
+                Organization
+              </span>
+
+              <select
+                value={currentOrg?.id ?? ""}
+                onChange={handleOrgChange}
+                disabled={orgsLoading || orgs.length === 0}
+                className="bg-[#120F18] border border-purple-900/60 rounded-lg px-3 py-1.5 text-xs text-purple-100 focus:outline-none focus:ring-1 focus:ring-purple-500 min-w-[170px] disabled:opacity-60"
+              >
+                {orgs.length === 0 ? (
+                  <option value="">No orgs</option>
+                ) : (
+                  orgs.map((org) => (
+                    <option key={org.id} value={org.id}>
+                      {org.name} {org.plan ? `(${org.plan})` : ""}
+                    </option>
+                  ))
+                )}
+              </select>
+
+              {orgsError ? (
+                <span className="mt-1 text-[10px] text-red-400">{orgsError}</span>
+              ) : null}
+            </div>
+          ) : (
+            <div className="hidden lg:flex flex-col items-start">
+              <span className="text-[10px] uppercase tracking-wide text-purple-400 mb-0.5">
+                Organization
+              </span>
+              <div className="bg-[#120F18] border border-purple-900/60 rounded-lg px-3 py-1.5 text-xs text-purple-100 min-w-[170px] max-w-[220px] truncate">
+                {currentOrg?.name || userProfile?.org_id || "Assigned org"}
               </div>
-            )}
-
-            {!loadingSug &&
-              mergedSuggestions.map((s, idx) => (
-                <button
-                  key={`${s.source}-${s.text}-${idx}`}
-                  type="button"
-                  onMouseEnter={() => setActiveIdx(idx)}
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => triggerSearch(s.text)}
-                  className={[
-                    "flex w-full items-center justify-between px-4 py-2 text-left text-sm transition",
-                    idx === activeIdx
-                      ? "bg-purple-900/30"
-                      : "bg-transparent hover:bg-purple-900/20",
-                  ].join(" ")}
-                >
-                  <span className="truncate text-purple-200">
-                    {s.source === "search" ? (
-                      <>
-                        <span className="text-purple-400 mr-2">Search for</span>
-                        {renderHighlighted(s.text, searchValue)}
-                      </>
-                    ) : (
-                      renderHighlighted(s.text, searchValue)
-                    )}
-                  </span>
-
-                  <span className="ml-3 shrink-0 text-[10px] text-purple-400/70 border border-purple-900/40 bg-black/20 px-2 py-0.5 rounded-full">
-                    {s.source === "recent"
-                      ? "Recent"
-                      : s.source === "search"
-                      ? "Enter"
-                      : "Suggest"}
-                  </span>
-                </button>
-              ))}
-
-            <div className="px-4 py-2 text-[10px] text-purple-500/80 border-t border-purple-900/30">
-              ↑↓ to navigate • Enter to search • Esc to close
             </div>
-          </div>
-        )}
-      </div>
+          )}
 
-      <div className="flex items-center gap-4 relative">
-        {isAdmin ? (
-          <div className="hidden sm:flex flex-col items-start mr-1">
-            <span className="text-[10px] uppercase tracking-wide text-purple-500 mb-0.5">
-              Organization
-            </span>
-
-            <select
-              value={currentOrg?.id ?? ""}
-              onChange={handleOrgChange}
-              disabled={orgsLoading || orgs.length === 0}
-              className="bg-[#120F18] border border-purple-900/60 rounded-lg px-3 py-1.5 text-xs text-purple-100 focus:outline-none focus:ring-1 focus:ring-purple-500 min-w-[170px] disabled:opacity-60"
-            >
-              {orgs.length === 0 ? (
-                <option value="">No orgs</option>
-              ) : (
-                orgs.map((org) => (
-                  <option key={org.id} value={org.id}>
-                    {org.name} {org.plan ? `(${org.plan})` : ""}
-                  </option>
-                ))
-              )}
-            </select>
-
-            {orgsError && <span className="mt-1 text-[10px] text-red-400">{orgsError}</span>}
-          </div>
-        ) : (
-          <div className="hidden sm:flex flex-col items-start mr-1">
-            <span className="text-[10px] uppercase tracking-wide text-purple-500 mb-0.5">
-              Organization
-            </span>
-            <div className="bg-[#120F18] border border-purple-900/60 rounded-lg px-3 py-1.5 text-xs text-purple-100 min-w-[170px]">
-              {currentOrg?.name || userProfile?.org_id || "Assigned org"}
-            </div>
-          </div>
-        )}
-
-        <motion.button
-          whileHover={{ scale: 1.15 }}
-          className="p-2 rounded-lg hover:bg-purple-900/40 transition shadow-[0_0_12px_rgba(176,92,255,0.35)]"
-        >
-          <BellIcon className="w-6 h-6 text-purple-300" />
-        </motion.button>
-
-        <motion.div
-          whileHover={{ scale: 1.05 }}
-          onClick={() => setOpen(!open)}
-          className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-purple-900/40 transition"
-        >
-          <div className="w-9 h-9 rounded-full bg-purple-800 border border-purple-600 shadow-inner" />
-          <ChevronDownIcon className="w-4 h-4 text-purple-400" />
-        </motion.div>
-
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="absolute right-0 top-14 bg-[#120F18] border border-purple-900/40 rounded-xl p-3 w-52 shadow-xl"
+          <motion.button
+            whileHover={{ scale: 1.08 }}
+            className="p-2 rounded-lg hover:bg-purple-900/40 transition shadow-[0_0_12px_rgba(176,92,255,0.35)]"
           >
-            <p className="text-purple-300 text-xs mb-2">
-              {user?.email ?? "Signed in user"}
-            </p>
-            <p className="text-purple-200 text-sm hover:text-white cursor-pointer py-1">
-              Profile
-            </p>
-            <p className="text-purple-200 text-sm hover:text-white cursor-pointer py-1">
-              Settings
-            </p>
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="text-left w-full text-red-400 text-sm hover:text-red-300 cursor-pointer py-1"
-            >
-              Logout
-            </button>
+            <BellIcon className="w-6 h-6 text-purple-200" />
+          </motion.button>
+
+          <motion.div
+            whileHover={{ scale: 1.03 }}
+            onClick={() => setOpen(!open)}
+            className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-purple-900/40 transition"
+          >
+            <div className="w-9 h-9 rounded-full bg-purple-800 border border-purple-500 shadow-inner" />
+            <ChevronDownIcon className="w-4 h-4 text-purple-300" />
           </motion.div>
-        )}
+
+          {open && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="absolute right-0 top-14 bg-[#120F18] border border-purple-900/40 rounded-xl p-3 w-52 shadow-xl z-50"
+            >
+              <p className="text-purple-300 text-xs mb-2 break-all">
+                {user?.email ?? "Signed in user"}
+              </p>
+              <p className="text-purple-100 text-sm hover:text-white cursor-pointer py-1">
+                Profile
+              </p>
+              <p className="text-purple-100 text-sm hover:text-white cursor-pointer py-1">
+                Settings
+              </p>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="text-left w-full text-red-400 text-sm hover:text-red-300 cursor-pointer py-1"
+              >
+                Logout
+              </button>
+            </motion.div>
+          )}
+        </div>
       </div>
     </motion.div>
   );
