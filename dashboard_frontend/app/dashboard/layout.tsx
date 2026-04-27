@@ -114,17 +114,17 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   return (
     <OrgProvider>
-      <div className="min-h-screen bg-[#050411] text-white">
+      <div className="min-h-screen bg-[#050411] text-white overflow-x-hidden">
         <Sidebar
           mobileOpen={mobileSidebarOpen}
           onClose={() => setMobileSidebarOpen(false)}
         />
 
-        <div className="min-h-screen min-w-0 md:ml-64 flex flex-col">
+        <div className="min-h-screen min-w-0 overflow-x-hidden md:ml-64 flex flex-col">
           <Navbar onOpenSidebar={() => setMobileSidebarOpen(true)} />
 
-          <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-4 sm:py-5 lg:px-6 lg:py-6">
-            {children}
+          <main className="flex-1 min-w-0 max-w-full overflow-x-hidden px-3 py-4 sm:px-4 sm:py-5 lg:px-6 lg:py-6">
+            <div className="min-w-0 max-w-full">{children}</div>
           </main>
         </div>
       </div>

@@ -4,6 +4,7 @@ import {
   BellIcon,
   MagnifyingGlassIcon,
   ChevronDownIcon,
+  Bars3Icon,
 } from "@heroicons/react/24/outline";
 import React, {
   Suspense,
@@ -23,7 +24,11 @@ import { auth } from "@/lib/firebase";
 
 type SuggestItem = { text: string; source: "firestore" | "recent" | "search" };
 
-function NavbarContent() {
+type NavbarProps = {
+  onOpenSidebar: () => void;
+};
+
+function NavbarContent({ onOpenSidebar }: NavbarProps) {
   const [open, setOpen] = useState(false);
 
   const [searchValue, setSearchValue] = useState("");
@@ -43,7 +48,8 @@ function NavbarContent() {
   const { currentOrg, orgs, setCurrentOrg, orgsLoading, orgsSource, orgsError } =
     useOrg();
 
-  const dropdownRef = useRef<HTMLDivElement | null>(null);
+  const searchRef = useRef<HTMLDivElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   const scope = currentOrg ? "org" : "public";
@@ -218,7 +224,7 @@ function NavbarContent() {
     return (
       <>
         {before}
-        <span className="font-semibold text-white">{mid}</span>
+        <span className="font-semibold text-purple-100">{mid}</span>
         {after}
       </>
     );
@@ -269,11 +275,15 @@ function NavbarContent() {
 
   useEffect(() => {
     function onDocClick(e: MouseEvent) {
-      const el = dropdownRef.current;
-      if (!el) return;
-      if (!el.contains(e.target as Node)) {
+      const target = e.target as Node;
+
+      if (searchRef.current && !searchRef.current.contains(target)) {
         setShowSuggestions(false);
         setActiveIdx(-1);
+      }
+
+      if (menuRef.current && !menuRef.current.contains(target)) {
+        setOpen(false);
       }
     }
 
@@ -295,31 +305,105 @@ function NavbarContent() {
       initial={{ y: -20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.4 }}
-      className="w-full border-b border-purple-900/40 bg-[#0C0A12]/80 backdrop-blur-xl px-4 py-3 sm:px-6 shadow-[0_0_25px_rgba(138,43,226,0.25)]"
+      className="w-full max-w-full overflow-x-hidden border-b border-purple-900/40 bg-[#0C0A12]/80 backdrop-blur-xl px-3 py-3 sm:px-4 lg:px-6 shadow-[0_0_25px_rgba(138,43,226,0.25)]"
     >
-      <div className="flex w-full flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-        <div className="min-w-0 flex flex-wrap items-center gap-2 text-xl font-semibold tracking-tight text-purple-100">
-          <span className="text-purple-400 animate-pulse">●</span>
-          <span className="truncate">Anti-Hate Monitor</span>
+      <div className="flex min-w-0 flex-col gap-3">
+        <div className="flex min-w-0 items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3 overflow-hidden">
+            <button
+              type="button"
+              onClick={onOpenSidebar}
+              className="md:hidden inline-flex items-center justify-center rounded-lg border border-purple-900/50 bg-[#120F18] p-2 text-purple-200 shrink-0"
+              aria-label="Open navigation"
+            >
+              <Bars3Icon className="h-6 w-6" />
+            </button>
 
-          {currentOrg && (
-            <span className="hidden lg:inline-flex max-w-[220px] truncate text-xs font-normal text-purple-200 px-2 py-0.5 rounded-full border border-purple-700/60 bg-black/30">
-              Workspace:&nbsp;
-              <span className="truncate text-white">{currentOrg.name}</span>
-            </span>
-          )}
+            <div className="min-w-0 flex items-center gap-3 overflow-hidden">
+              <span className="hidden sm:inline text-purple-400 animate-pulse shrink-0">●</span>
 
-          <span className="hidden xl:inline-flex text-[10px] text-purple-200 border border-purple-900/50 bg-black/20 px-2 py-0.5 rounded-full">
-            {isAdmin ? "Admin" : role === "org_user" ? "Org User" : "Unknown"}
-          </span>
+              <span className="truncate text-lg sm:text-xl font-semibold tracking-tight text-purple-200">
+                Anti-Hate Monitor
+              </span>
 
-          <span className="hidden 2xl:inline-flex text-[10px] text-purple-300 border border-purple-900/50 bg-black/20 px-2 py-0.5 rounded-full">
-            {orgsLoading ? "Loading orgs…" : orgsSource === "api" ? "API" : "Fallback"}
-          </span>
+              {currentOrg && (
+                <span className="hidden xl:inline-flex max-w-[180px] truncate text-xs font-normal text-purple-400 px-2 py-0.5 rounded-full border border-purple-700/60 bg-black/30">
+                  Workspace:&nbsp;
+                  <span className="truncate text-purple-100">{currentOrg.name}</span>
+                </span>
+              )}
+
+              <span className="hidden lg:inline text-[10px] text-purple-500 border border-purple-900/50 bg-black/20 px-2 py-0.5 rounded-full shrink-0">
+                {isAdmin ? "Admin" : role === "org_user" ? "Org User" : "Unknown"}
+              </span>
+
+              <span className="hidden 2xl:inline text-[10px] text-purple-500 border border-purple-900/50 bg-black/20 px-2 py-0.5 rounded-full shrink-0">
+                {orgsLoading ? "Loading orgs…" : orgsSource === "api" ? "API" : "Fallback"}
+              </span>
+            </div>
+          </div>
+
+          <div className="relative flex shrink-0 items-center gap-2" ref={menuRef}>
+            <motion.button
+              whileHover={{ scale: 1.08 }}
+              type="button"
+              className="p-2 rounded-lg hover:bg-purple-900/40 transition shadow-[0_0_12px_rgba(176,92,255,0.35)]"
+            >
+              <BellIcon className="w-5 h-5 sm:w-6 sm:h-6 text-purple-300" />
+            </motion.button>
+
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              type="button"
+              onClick={() => setOpen((v) => !v)}
+              className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-purple-900/40 transition"
+            >
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-purple-800 border border-purple-600 shadow-inner" />
+              <ChevronDownIcon className="w-4 h-4 text-purple-400" />
+            </motion.button>
+
+            {open && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="absolute right-0 top-14 z-50 bg-[#120F18] border border-purple-900/40 rounded-xl p-3 w-56 shadow-xl"
+              >
+                <p className="text-purple-300 text-xs mb-2 break-all">
+                  {user?.email ?? "Signed in user"}
+                </p>
+
+                <button
+                  type="button"
+                  className="block w-full text-left text-purple-200 text-sm hover:text-white py-1"
+                >
+                  Profile
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    router.push("/dashboard/settings");
+                  }}
+                  className="block w-full text-left text-purple-200 text-sm hover:text-white py-1"
+                >
+                  Settings
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="text-left w-full text-red-400 text-sm hover:text-red-300 py-1"
+                >
+                  Logout
+                </button>
+              </motion.div>
+            )}
+          </div>
         </div>
 
-        <div className="order-3 xl:order-2 w-full xl:max-w-xl" ref={dropdownRef}>
-          <div className="relative w-full">
+        <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-end">
+          <div className="relative min-w-0 flex-1" ref={searchRef}>
             <input
               ref={inputRef}
               type="text"
@@ -332,11 +416,11 @@ function NavbarContent() {
               }}
               onFocus={() => setShowSuggestions(true)}
               onKeyDown={onSearchKey}
-              className="w-full bg-[#120F18] border border-purple-900/40 rounded-xl px-4 py-2 text-sm text-purple-100 placeholder-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
+              className="w-full bg-[#120F18] border border-purple-900/40 rounded-xl px-4 py-2.5 text-sm text-purple-200 placeholder-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
             />
 
             <MagnifyingGlassIcon
-              className="w-5 h-5 text-purple-300 absolute right-3 top-2.5 cursor-pointer hover:text-white transition"
+              className="w-5 h-5 text-purple-400 absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer hover:text-purple-300 transition"
               onClick={() => triggerSearch()}
             />
 
@@ -350,9 +434,9 @@ function NavbarContent() {
                 )}
 
                 {!loadingSug && mergedSuggestions.length === 0 && (
-                  <div className="px-4 py-3 text-sm text-purple-300">
+                  <div className="px-4 py-3 text-sm text-purple-400/80">
                     No suggestions — press{" "}
-                    <span className="text-white font-semibold">Enter</span> to search.
+                    <span className="text-purple-200 font-semibold">Enter</span> to search.
                   </div>
                 )}
 
@@ -371,10 +455,10 @@ function NavbarContent() {
                           : "bg-transparent hover:bg-purple-900/20",
                       ].join(" ")}
                     >
-                      <span className="truncate text-purple-100">
+                      <span className="truncate text-purple-200">
                         {s.source === "search" ? (
                           <>
-                            <span className="text-purple-300 mr-2">Search for</span>
+                            <span className="text-purple-400 mr-2">Search for</span>
                             {renderHighlighted(s.text, searchValue)}
                           </>
                         ) : (
@@ -382,7 +466,7 @@ function NavbarContent() {
                         )}
                       </span>
 
-                      <span className="ml-3 shrink-0 text-[10px] text-purple-300 border border-purple-900/40 bg-black/20 px-2 py-0.5 rounded-full">
+                      <span className="ml-3 shrink-0 text-[10px] text-purple-400/70 border border-purple-900/40 bg-black/20 px-2 py-0.5 rounded-full">
                         {s.source === "recent"
                           ? "Recent"
                           : s.source === "search"
@@ -392,18 +476,16 @@ function NavbarContent() {
                     </button>
                   ))}
 
-                <div className="px-4 py-2 text-[10px] text-purple-400 border-t border-purple-900/30">
+                <div className="px-4 py-2 text-[10px] text-purple-500/80 border-t border-purple-900/30">
                   ↑↓ to navigate • Enter to search • Esc to close
                 </div>
               </div>
             )}
           </div>
-        </div>
 
-        <div className="order-2 xl:order-3 flex flex-wrap items-center justify-end gap-3 relative">
           {isAdmin ? (
-            <div className="hidden lg:flex flex-col items-start">
-              <span className="text-[10px] uppercase tracking-wide text-purple-400 mb-0.5">
+            <div className="w-full lg:w-64 shrink-0">
+              <span className="block text-[10px] uppercase tracking-wide text-purple-500 mb-1">
                 Organization
               </span>
 
@@ -411,7 +493,7 @@ function NavbarContent() {
                 value={currentOrg?.id ?? ""}
                 onChange={handleOrgChange}
                 disabled={orgsLoading || orgs.length === 0}
-                className="bg-[#120F18] border border-purple-900/60 rounded-lg px-3 py-1.5 text-xs text-purple-100 focus:outline-none focus:ring-1 focus:ring-purple-500 min-w-[170px] disabled:opacity-60"
+                className="w-full bg-[#120F18] border border-purple-900/60 rounded-lg px-3 py-2.5 text-xs text-purple-100 focus:outline-none focus:ring-1 focus:ring-purple-500 disabled:opacity-60"
               >
                 {orgs.length === 0 ? (
                   <option value="">No orgs</option>
@@ -424,60 +506,19 @@ function NavbarContent() {
                 )}
               </select>
 
-              {orgsError ? (
-                <span className="mt-1 text-[10px] text-red-400">{orgsError}</span>
-              ) : null}
+              {orgsError && (
+                <span className="mt-1 block text-[10px] text-red-400">{orgsError}</span>
+              )}
             </div>
           ) : (
-            <div className="hidden lg:flex flex-col items-start">
-              <span className="text-[10px] uppercase tracking-wide text-purple-400 mb-0.5">
+            <div className="w-full lg:w-64 shrink-0">
+              <span className="block text-[10px] uppercase tracking-wide text-purple-500 mb-1">
                 Organization
               </span>
-              <div className="bg-[#120F18] border border-purple-900/60 rounded-lg px-3 py-1.5 text-xs text-purple-100 min-w-[170px] max-w-[220px] truncate">
+              <div className="w-full truncate bg-[#120F18] border border-purple-900/60 rounded-lg px-3 py-2.5 text-xs text-purple-100">
                 {currentOrg?.name || userProfile?.org_id || "Assigned org"}
               </div>
             </div>
-          )}
-
-          <motion.button
-            whileHover={{ scale: 1.08 }}
-            className="p-2 rounded-lg hover:bg-purple-900/40 transition shadow-[0_0_12px_rgba(176,92,255,0.35)]"
-          >
-            <BellIcon className="w-6 h-6 text-purple-200" />
-          </motion.button>
-
-          <motion.div
-            whileHover={{ scale: 1.03 }}
-            onClick={() => setOpen(!open)}
-            className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-purple-900/40 transition"
-          >
-            <div className="w-9 h-9 rounded-full bg-purple-800 border border-purple-500 shadow-inner" />
-            <ChevronDownIcon className="w-4 h-4 text-purple-300" />
-          </motion.div>
-
-          {open && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="absolute right-0 top-14 bg-[#120F18] border border-purple-900/40 rounded-xl p-3 w-52 shadow-xl z-50"
-            >
-              <p className="text-purple-300 text-xs mb-2 break-all">
-                {user?.email ?? "Signed in user"}
-              </p>
-              <p className="text-purple-100 text-sm hover:text-white cursor-pointer py-1">
-                Profile
-              </p>
-              <p className="text-purple-100 text-sm hover:text-white cursor-pointer py-1">
-                Settings
-              </p>
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="text-left w-full text-red-400 text-sm hover:text-red-300 cursor-pointer py-1"
-              >
-                Logout
-              </button>
-            </motion.div>
           )}
         </div>
       </div>
@@ -485,12 +526,12 @@ function NavbarContent() {
   );
 }
 
-export default function Navbar() {
+export default function Navbar({ onOpenSidebar }: NavbarProps) {
   return (
     <Suspense
-      fallback={<div className="w-full h-16 border-b border-purple-900/40 bg-[#0C0A12]/80" />}
+      fallback={<div className="w-full h-20 border-b border-purple-900/40 bg-[#0C0A12]/80" />}
     >
-      <NavbarContent />
+      <NavbarContent onOpenSidebar={onOpenSidebar} />
     </Suspense>
   );
 }
