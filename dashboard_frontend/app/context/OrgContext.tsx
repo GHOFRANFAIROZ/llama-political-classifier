@@ -62,6 +62,15 @@ function ensureSlug(o: Org) {
   return o.slug || o.id.replaceAll("_", "-");
 }
 
+function makeFallbackOrg(orgId: string): Org {
+  const cleanId = String(orgId || "").trim();
+  return {
+    id: cleanId,
+    slug: cleanId.replaceAll("_", "-"),
+    name: cleanId.replaceAll("_", " "),
+  };
+}
+
 export function OrgProvider({ children }: { children: ReactNode }) {
   const { userProfile, profileLoading } = useAuth();
 
@@ -73,6 +82,21 @@ export function OrgProvider({ children }: { children: ReactNode }) {
   const [orgsError, setOrgsError] = useState<string | null>(null);
 
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (profileLoading) return;
+
+    if (userProfile?.role === "org_user" && userProfile.org_id) {
+      const fallback = makeFallbackOrg(userProfile.org_id);
+
+      setCurrentOrgState((prev) => {
+        if (prev?.id === fallback.id) return prev;
+        return fallback;
+      });
+
+      safeSetLS(LOCAL_STORAGE_KEY, fallback.id);
+    }
+  }, [profileLoading, userProfile?.role, userProfile?.org_id]);
 
   const loadOrgs = useCallback(async () => {
     if (profileLoading) return;
@@ -90,17 +114,26 @@ export function OrgProvider({ children }: { children: ReactNode }) {
 
       const data = await res.json();
 
-      const apiOrgs: Org[] = Array.isArray(data?.orgs)
+      const rawOrgs = Array.isArray(data?.orgs)
         ? data.orgs
-            .map((o: any) => ({
-              id: String(o.id ?? "").trim(),
-              slug: (o.slug as string | undefined) ?? undefined,
-              name: String(o.name ?? "").trim(),
-              plan: (o.plan ?? undefined) as Org["plan"] | undefined,
-              country: (o.country ?? undefined) as string | undefined,
-            }))
-            .filter((o: Org) => o.id && o.name)
+        : Array.isArray(data?.results)
+        ? data.results
         : [];
+
+      const apiOrgs: Org[] = rawOrgs
+        .map((o: any) => {
+          const id = String(o?.id ?? o?.org_id ?? "").trim();
+          const name = String(o?.name ?? o?.display_name ?? "").trim();
+
+          return {
+            id,
+            slug: (o?.slug as string | undefined) ?? undefined,
+            name,
+            plan: (o?.plan ?? undefined) as Org["plan"] | undefined,
+            country: (o?.country ?? undefined) as string | undefined,
+          };
+        })
+        .filter((o: Org) => o.id && o.name);
 
       let visibleOrgs = apiOrgs;
 
@@ -108,11 +141,14 @@ export function OrgProvider({ children }: { children: ReactNode }) {
         if (!userProfile.org_id) {
           visibleOrgs = [];
         } else {
-          visibleOrgs = apiOrgs.filter((o) => o.id === userProfile.org_id);
+          const matched = apiOrgs.find((o) => o.id === userProfile.org_id);
 
-          if (visibleOrgs.length === 0) {
+          if (matched) {
+            visibleOrgs = [{ ...matched, slug: ensureSlug(matched) }];
+          } else {
+            visibleOrgs = [makeFallbackOrg(userProfile.org_id)];
             setOrgsError(
-              `Assigned organization was not found: ${userProfile.org_id}`
+              `Assigned organization was not found in org list: ${userProfile.org_id}`
             );
           }
         }
@@ -122,16 +158,34 @@ export function OrgProvider({ children }: { children: ReactNode }) {
       setOrgsSource(apiOrgs.length > 0 ? "api" : "empty");
       setLastSyncedAt(new Date().toISOString());
     } catch (e: any) {
-      setOrgs([]);
-      setCurrentOrgState(null);
-      setOrgsSource("empty");
-      setOrgsError(e?.message ?? "Failed to load orgs");
-      setLastSyncedAt(null);
-      safeRemoveLS(LOCAL_STORAGE_KEY);
+      const fallbackOrg =
+        userProfile?.role === "org_user" && userProfile.org_id
+          ? makeFallbackOrg(userProfile.org_id)
+          : null;
+
+      if (fallbackOrg) {
+        setOrgs([fallbackOrg]);
+        setCurrentOrgState(fallbackOrg);
+        setOrgsSource("empty");
+        setOrgErrorSafe(e?.message ?? "Failed to load orgs");
+        setLastSyncedAt(null);
+        safeSetLS(LOCAL_STORAGE_KEY, fallbackOrg.id);
+      } else {
+        setOrgs([]);
+        setCurrentOrgState(null);
+        setOrgsSource("empty");
+        setOrgsError(e?.message ?? "Failed to load orgs");
+        setLastSyncedAt(null);
+        safeRemoveLS(LOCAL_STORAGE_KEY);
+      }
     } finally {
       setOrgsLoading(false);
     }
   }, [profileLoading, userProfile?.role, userProfile?.org_id]);
+
+  function setOrgErrorSafe(message: string) {
+    setOrgsError(message);
+  }
 
   useEffect(() => {
     if (profileLoading) return;
@@ -159,9 +213,22 @@ export function OrgProvider({ children }: { children: ReactNode }) {
     }
 
     const found = orgs.find((o) => o.id === desiredId) || orgs[0];
-
     const normalized: Org = { ...found, slug: ensureSlug(found) };
-    setCurrentOrgState(normalized);
+
+    setCurrentOrgState((prev) => {
+      if (
+        prev &&
+        prev.id === normalized.id &&
+        prev.name === normalized.name &&
+        prev.slug === normalized.slug &&
+        prev.plan === normalized.plan &&
+        prev.country === normalized.country
+      ) {
+        return prev;
+      }
+      return normalized;
+    });
+
     safeSetLS(LOCAL_STORAGE_KEY, normalized.id);
   }, [
     profileLoading,

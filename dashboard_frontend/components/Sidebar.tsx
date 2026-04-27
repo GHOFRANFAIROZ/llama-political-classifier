@@ -50,7 +50,7 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
   const sidebarInner = (
     <>
       <div className="flex items-center justify-between px-6 pb-2">
-        <div className="text-2xl font-bold text-purple-300 tracking-tight">
+        <div className="truncate text-2xl font-bold text-purple-300 tracking-tight">
           Anti-Hate Monitor
         </div>
 
@@ -96,7 +96,7 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
                   }`}
               >
                 <Icon className="w-5 h-5 shrink-0" />
-                <span className="text-sm font-medium">{item.name}</span>
+                <span className="text-sm font-medium truncate">{item.name}</span>
               </Link>
             </motion.div>
           );
@@ -107,7 +107,7 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
 
   return (
     <>
-      <aside className="hidden md:flex fixed inset-y-0 left-0 z-30 w-64 bg-[#0A0A0F]/95 backdrop-blur-md border-r border-purple-900/30 flex-col py-6 shadow-[0_0_25px_rgba(138,43,226,0.25)] overflow-y-auto">
+      <aside className="hidden md:flex fixed inset-y-0 left-0 z-30 w-64 shrink-0 bg-[#0A0A0F]/95 backdrop-blur-md border-r border-purple-900/30 flex-col py-6 shadow-[0_0_25px_rgba(138,43,226,0.25)] overflow-y-auto overflow-x-hidden">
         {sidebarInner}
       </aside>
 
@@ -119,7 +119,7 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
       />
 
       <aside
-        className={`md:hidden fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] bg-[#0A0A0F]/98 backdrop-blur-md border-r border-purple-900/30 py-6 shadow-[0_0_25px_rgba(138,43,226,0.25)] overflow-y-auto transform transition-transform duration-300 ${
+        className={`md:hidden fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] bg-[#0A0A0F]/98 backdrop-blur-md border-r border-purple-900/30 py-6 shadow-[0_0_25px_rgba(138,43,226,0.25)] overflow-y-auto overflow-x-hidden transform transition-transform duration-300 ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
