@@ -1,0 +1,65 @@
+# =========================================
+# LOCAL DEBUG MODE FOR FRONTEND -> LOCAL BACKEND
+# =========================================
+# هذا الملف مخصص للتشغيل المحلي فقط مع:
+# - Frontend local (npm run dev)
+# - Backend local (python app.py)
+#
+# السبب:
+# البيانات التي زرعناها والـ backfill انعملت على البيئة المحلية،
+# لذلك لازم الفرونت المحلي يقرأ من الباكند المحلي، وليس من Render.
+#
+# مهم:
+# هذا لا يغير الإنتاج ولا Render ولا Firebase project.
+# هذا فقط لنسخة التطوير على جهازك.
+#
+# بعد الانتهاء من الاختبار المحلي:
+# أرجعي القيم إلى Render أو فعّلي السطور المعلّقة بالأسفل،
+# ثم أعيدي تشغيل npm run dev.
+# =========================================
+
+BACKEND_URL=http://127.0.0.1:10000
+NEXT_PUBLIC_BACKEND_URL=http://127.0.0.1:10000
+
+# =========================================
+# OFFICIAL REMOTE BACKEND (KEEP AS NOTE)
+# إذا أردنا الرجوع للباكند المنشور على Render لاحقًا:
+# احذفي أو علّقي السطرين أعلاه،
+# ثم فعّلي هذين السطرين:
+#
+# BACKEND_URL=https://my-classifier-v2.onrender.com
+# NEXT_PUBLIC_BACKEND_URL=https://my-classifier-v2.onrender.com
+# =========================================
+
+# =========================================
+# OFFICIAL FIREBASE PROJECT
+# لا نغير هذه القيم هنا. هذا هو المشروع الرسمي المعتمد.
+# Firebase project: hate-speech-monitor-7c0ba
+# =========================================
+NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyC1XrKllk0npSXdbY3caHLaWikhM4gD3FE
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=hate-speech-monitor-7c0ba.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=hate-speech-monitor-7c0ba
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=hate-speech-monitor-7c0ba.firebasestorage.app
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=86447132464
+NEXT_PUBLIC_FIREBASE_APP_ID=1:86447132464:web:d1ebcf8349fca6f65cc2f5
+
+# =========================================
+# PROJECT NOTES / SOURCE OF TRUTH
+# =========================================
+# Official Firebase project: hate-speech-monitor-7c0ba
+# Official backend on Render: my-classifier-v2
+# Chrome extension = main product entry point
+# Dashboard = analytics / management layer
+# Request Access = org onboarding flow
+#
+# Real Test Org identifiers:
+# - org_id = real_test_org
+# - slug = real-test-org
+#
+# Important:
+# - seed_org_reports.py and backfill_org_aggregates.py
+#   must use org_id, not slug.
+# - Local debug is only for validating local data flow.
+# - Do not delete old collections yet.
+# - Keep -> Verify -> Then delete
+# =========================================

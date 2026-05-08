@@ -30,7 +30,7 @@ export default function RequestAccessPage() {
       setState({
         kind: "error",
         message:
-          "NEXT_PUBLIC_BACKEND_URL is missing in dashboard_frontend/.env.local",
+          "The backend URL is not configured. Check NEXT_PUBLIC_BACKEND_URL before testing request access.",
       });
       return;
     }
@@ -38,7 +38,7 @@ export default function RequestAccessPage() {
     if (!requesterEmail.trim() || !organizationName.trim()) {
       setState({
         kind: "error",
-        message: "Email and organization name are required.",
+        message: "Work email and organization name are required.",
       });
       return;
     }
@@ -74,14 +74,15 @@ export default function RequestAccessPage() {
 
       const req = data?.request;
       const successMessage = req
-        ? `Request submitted successfully. Status: ${req.status}. Org preview: ${req.org_id_preview ?? "—"}`
-        : "Request submitted successfully.";
+        ? `Your request was submitted successfully and is now marked as ${req.status}. An admin can review it and approve your organization workspace.`
+        : "Your request was submitted successfully. An admin can review it and approve your organization workspace.";
 
       setState({
         kind: "success",
         message: successMessage,
       });
 
+      setRequesterEmail("");
       setOrganizationName("");
       setCountry("");
       setRequestedPlan("Free");
@@ -107,12 +108,25 @@ export default function RequestAccessPage() {
         </div>
 
         <div className="rounded-3xl border border-purple-900/40 bg-[#120F18] p-8 shadow-[0_0_30px_rgba(138,43,226,0.18)]">
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold text-purple-100">Request access</h1>
-            <p className="mt-3 text-sm text-purple-300 max-w-2xl">
-              Submit a request to create or join an organization workspace in
-              Anti-Hate Monitor. An admin can review and approve it later.
+          <div className="mb-8 space-y-3">
+            <span className="inline-flex rounded-full border border-purple-700/50 bg-black/30 px-3 py-1 text-[11px] uppercase tracking-wide text-purple-300">
+              Organization onboarding
+            </span>
+
+            <h1 className="text-4xl font-bold text-purple-100">Request organization access</h1>
+
+            <p className="text-sm text-purple-300 max-w-2xl leading-6">
+              Use this form if you are requesting a dedicated workspace for an
+              organization, team, or initiative. After submission, an admin can
+              review your request and approve your workspace.
             </p>
+
+            <div className="rounded-2xl border border-purple-900/40 bg-black/20 px-4 py-3 text-sm text-purple-300">
+              <span className="font-medium text-purple-100">Before you submit:</span>{" "}
+              use the same work email address you plan to use for sign-in. If that
+              email already exists in Firebase Auth, approval can link your account
+              to the organization more smoothly.
+            </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -137,7 +151,7 @@ export default function RequestAccessPage() {
                 type="text"
                 value={organizationName}
                 onChange={(e) => setOrganizationName(e.target.value)}
-                placeholder="Anti Hate Org"
+                placeholder="Example Organization"
                 className="w-full rounded-2xl border border-purple-900/50 bg-black/30 px-4 py-3 text-sm text-white placeholder-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
             </div>
@@ -182,7 +196,7 @@ export default function RequestAccessPage() {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 rows={5}
-                placeholder="Tell us briefly why you need this workspace..."
+                placeholder="Briefly describe your organization, intended use, or what kind of workspace you need."
                 className="w-full rounded-2xl border border-purple-900/50 bg-black/30 px-4 py-3 text-sm text-white placeholder-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
               />
             </div>
@@ -198,6 +212,16 @@ export default function RequestAccessPage() {
                 {state.message}
               </div>
             )}
+
+            <div className="rounded-2xl border border-purple-900/40 bg-black/20 px-4 py-3 text-xs text-purple-400 leading-6">
+              What happens next:
+              <div className="mt-2 space-y-1">
+                <div>1. Your request is stored for admin review.</div>
+                <div>2. An admin can approve or reject the request.</div>
+                <div>3. If approved, your organization workspace is created.</div>
+                <div>4. If your email already exists as a user, it can be linked to that workspace.</div>
+              </div>
+            </div>
 
             <div className="flex flex-wrap items-center gap-3 pt-2">
               <button

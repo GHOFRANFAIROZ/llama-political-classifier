@@ -147,26 +147,118 @@ def update_org_aggregates_from_report(org_id: str, data: Dict[str, Any]) -> bool
 # =========================
 def _now_utc() -> datetime:
     return datetime.now(timezone.utc)
+ARABIC_STOPWORDS = {
+    "هذا", "هذه", "ذلك", "تلك", "هناك", "هنا",
+    "الذي", "التي", "الذين", "اللاتي", "اللاتي",
+    "من", "إلى", "الى", "في", "على", "عن", "مع", "بين", "بعد", "قبل",
+    "ثم", "كما", "لكن", "وقد", "تم", "كان", "كانت", "يكون", "تكون",
+    "هو", "هي", "هم", "هن", "أنا", "نحن", "أنت", "انتم",
+    "كل", "بعض", "أكثر", "اقل", "أقل", "أي", "أو", "بل", "إذا",
+    "لا", "لم", "لن", "ما", "ماذا", "لماذا", "كيف", "أين", "حين",
+    "ضمن", "حول", "عبر", "عند", "إذ", "اذ", "حيث", "اليوم", "أمس", "غد",
+}
 
+ENGLISH_STOPWORDS = {
+    "the", "and", "for", "with", "from", "into", "onto", "that", "this",
+    "these", "those", "are", "was", "were", "has", "have", "had", "not",
+    "but", "you", "your", "their", "them", "they", "our", "ours", "his",
+    "her", "its", "about", "after", "before", "during", "while", "over",
+    "under", "than", "then", "also", "just", "very", "more", "most",
+}
+
+GENERIC_NOISE_TERMS = {
+    "النص",
+        "يجب",
+    "ويجب",
+    "يتضمن",
+    "يحتوي",
+    "مباشر",
+    "مباشرًا",
+    "مباشرة",
+    "مباشرةً",
+    "وصفي",
+    "ووصفي",
+    "تحليلي",
+    "وتحليلي",
+    "تحليلية",
+    "ناقشنا",
+    "أمر",
+    "جديد",
+    "عام",
+    "محتوى",
+    "المحتوى",
+    "منشور",
+    "منشورات",
+    "اليوم",
+    "عام",
+    "بشكل",
+    "بصورة",
+    "شيء",
+    "أشياء",
+    "there",
+    "here",
+    "content",
+    "post",
+    "posts",
+    "general",
+    "today",
+}
+
+def _is_meaningful_token(token: str) -> bool:
+    if not token:
+        return False
+
+    t = str(token).strip().lower()
+
+    if "." in t:
+        t = t.replace(".", "_")
+
+    if len(t) < 3:
+        return False
+
+    if t.isdigit():
+        return False
+
+    if t.startswith("http") or t.startswith("www"):
+        return False
+
+    if t in ARABIC_STOPWORDS:
+        return False
+
+    if t in ENGLISH_STOPWORDS:
+        return False
+
+    if t in GENERIC_NOISE_TERMS:
+        return False
+
+    return True
 
 def _tokenize(text: str) -> List[str]:
     """
-    Tokenize عربي/إنجليزي/أرقام. نحذف القصير (<3).
-    نرجّع tokens unique مع الحفاظ على ترتيب.
+    Tokenize عربي/إنجليزي/أرقام.
+    نحذف القصير والـ stopwords والكلمات الضجيجية.
+    نرجّع tokens unique مع الحفاظ على الترتيب.
     """
     if not text:
         return []
+
     words = [w.lower() for w in TOKEN_RE.findall(text)]
-    words = [w for w in words if len(w) >= 3]
 
     seen = set()
     out: List[str] = []
+
     for w in words:
+        if "." in w:
+            w = w.replace(".", "_")
+
+        if not _is_meaningful_token(w):
+            continue
+
         if w not in seen:
             seen.add(w)
             out.append(w)
-    return out
 
+    return out
 
 def _to_datetime(v: Any, is_end: bool = False) -> Optional[datetime]:
     """
@@ -655,29 +747,30 @@ def get_org_wordcloud(org_id: str, date_range: str = "30d", top_k: int = 80) -> 
     """
     Fast wordcloud from daily term aggregates.
     Fallback to scan if missing.
+    Supports true all-time mode.
     """
     try:
         dr = (date_range or "30d").lower().strip()
         now = _now_utc()
-
-        if dr == "24h":
-            start = (now - timedelta(days=1)).date().isoformat()
-        elif dr == "7d":
-            start = (now - timedelta(days=7)).date().isoformat()
-        elif dr == "30d":
-            start = (now - timedelta(days=30)).date().isoformat()
-        else:
-            start = (now - timedelta(days=90)).date().isoformat()
-
         end = now.date().isoformat()
 
         days_ref = _terms_days_ref(org_id)
-        q = (
-            days_ref
-            .order_by("__name__")
-            .start_at([start])
-            .end_at([end])
-        )
+        q = days_ref.order_by("__name__")
+
+        if dr == "24h":
+            start = (now - timedelta(days=1)).date().isoformat()
+            q = q.start_at([start]).end_at([end])
+        elif dr == "7d":
+            start = (now - timedelta(days=7)).date().isoformat()
+            q = q.start_at([start]).end_at([end])
+        elif dr == "30d":
+            start = (now - timedelta(days=30)).date().isoformat()
+            q = q.start_at([start]).end_at([end])
+        elif dr in {"all", "all_time"}:
+            start = None
+        else:
+            start = (now - timedelta(days=90)).date().isoformat()
+            q = q.start_at([start]).end_at([end])
 
         freq: Dict[str, int] = {}
         for d in q.stream():
@@ -685,8 +778,11 @@ def get_org_wordcloud(org_id: str, date_range: str = "30d", top_k: int = 80) -> 
             terms_map = dd.get("terms") or {}
             for t, c in (terms_map or {}).items():
                 try:
-                    freq[t] = freq.get(t, 0) + int(c)
-                except:
+                    token = str(t).lower().strip()
+                    if not _is_meaningful_token(token):
+                        continue
+                    freq[token] = freq.get(token, 0) + int(c)
+                except Exception:
                     pass
 
         sorted_terms = sorted(freq.items(), key=lambda x: x[1], reverse=True)[:top_k]
@@ -699,19 +795,28 @@ def get_org_wordcloud(org_id: str, date_range: str = "30d", top_k: int = 80) -> 
         logger.warning(f"[get_org_wordcloud] aggregates missing or failed -> fallback scan. err={e}")
 
         ref = _collection_for_org(org_id)
-        ref, _, _ = _apply_date_filters(ref, date_range, None, None)
+
+        if date_range not in {"all", "all_time"}:
+            ref, _, _ = _apply_date_filters(ref, date_range, None, None)
 
         freq: Dict[str, int] = {}
         for d in ref.stream():
             data = d.to_dict()
             tokens = data.get("searchable_tokens") or []
+
             if not tokens:
-                tokens = _tokenize((data.get("text") or "") + " " + (data.get("reason_ar") or ""))
+                text = str(data.get("text") or "").strip()
+                reason = str(data.get("reason_ar") or "").strip()
+
+                tokens = _tokenize(text)
+                if len(tokens) < 8 and reason:
+                    tokens += _tokenize(reason)
 
             for t in tokens:
-                if len(t) < 3:
+                token = str(t).lower().strip()
+                if not _is_meaningful_token(token):
                     continue
-                freq[t] = freq.get(t, 0) + 1
+                freq[token] = freq.get(token, 0) + 1
 
         sorted_terms = sorted(freq.items(), key=lambda x: x[1], reverse=True)[:top_k]
         terms = [{"term": w, "count": c, "category": None} for w, c in sorted_terms]

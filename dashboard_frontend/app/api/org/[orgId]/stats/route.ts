@@ -57,10 +57,14 @@ export async function GET(
       totalReports:
         data.total_reports ?? data.totalReports ?? data.total ?? 0,
       last7dReports:
-        data.last_7d_reports ?? data.last7DaysReports ?? data.last7d ?? 0,
+        data.last7d_reports ??
+        data.last_7d_reports ??
+        data.last7DaysReports ??
+        data.last7d ??
+        0,
       activeUsers: data.active_users ?? data.activeUsers ?? null,
       hateSpeechRatio:
-        data.hate_speech_ratio ?? data.hateRatio ?? data.hate_speech ?? 0,
+        data.hate_speech_ratio ?? data.hateSpeechRatio ?? data.hateRatio ?? data.hate_speech ?? 0,
       mostToxicPlatform:
         data.most_toxic_platform ?? data.mostToxicPlatform ?? null,
       timeToFirstReviewHours:

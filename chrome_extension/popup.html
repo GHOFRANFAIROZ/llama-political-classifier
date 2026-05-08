@@ -1,236 +1,296 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
-
 <head>
   <meta charset="UTF-8" />
   <title>راصد المحتوى التحريضي الذكي</title>
-
-  <!-- خط Amiri محلي لمنع مشاكل CSP -->
   <style>
-    
     :root {
-      --bg-main: #0f0b1e;
-      --bg-card: #1a1333;
-      --border: rgba(255, 255, 255, 0.12);
-      --text: #f2f0fa;
-      --muted: #b9b4d8;
+      --bg-main: #0c0818;
+      --bg-card: #13102a;
+      --bg-deep: #0a0716;
+      --border: rgba(255,255,255,0.09);
+      --border-accent: rgba(123,92,255,0.4);
+      --text: #f0eeff;
+      --muted: #9b95c4;
       --accent: #7b5cff;
       --accent-soft: #5e46c8;
+      --accent-glow: rgba(123,92,255,0.2);
+      --ok: #7dffc3;
+      --bad: #ff8fa3;
+      --warn: #ffd37a;
+      --public-color: #5bcfff;
+      --org-color: #a78bfa;
     }
-
-    * {
-      box-sizing: border-box;
-    }
-
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      margin: 0;
-      width: 320px;
-      height: 320px;
-      background: linear-gradient(180deg, #0c0818, #140e2b);
-      color: var(--text);
-      overflow: hidden;
+      width: 360px; min-height: 480px;
+      background: var(--bg-main); color: var(--text);
+      font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+      overflow-x: hidden; overflow-y: auto; position: relative;
+    }
+    body::before {
+      content: ''; position: fixed; inset: 0;
+      background-image:
+        linear-gradient(rgba(123,92,255,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(123,92,255,0.04) 1px, transparent 1px);
+      background-size: 28px 28px;
+      pointer-events: none; z-index: 0;
     }
 
-    .wrap {
-      padding: 14px;
-    }
+    /* ── View system ── */
+    .view { display: none; position: relative; z-index: 1; padding: 16px; }
+    .view.active { display: block; }
 
-    .header {
-      text-align: center;
+    /* ════ ONBOARDING ════ */
+    #view-onboarding {
+      min-height: 480px; display: none;
+      flex-direction: column; align-items: center; justify-content: center;
+    }
+    #view-onboarding.active { display: flex; }
+
+    .ob-logo {
+      width: 52px; height: 52px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-soft));
+      border-radius: 16px; display: flex; align-items: center; justify-content: center;
+      font-size: 26px; margin-bottom: 16px;
+      box-shadow: 0 0 28px var(--accent-glow);
+    }
+    .ob-title { font-size: 17px; font-weight: 700; text-align: center; margin-bottom: 6px; }
+    .ob-sub { font-size: 12px; color: var(--muted); text-align: center; margin-bottom: 24px; line-height: 1.6; }
+    .ob-label {
+      font-size: 10px; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; text-align: center;
+    }
+    .ob-options { width: 100%; display: flex; flex-direction: column; gap: 9px; }
+    .ob-btn {
+      width: 100%; padding: 13px 14px; border-radius: 12px; border: 1px solid var(--border);
+      background: var(--bg-card); cursor: pointer; text-align: right;
+      transition: all 0.2s ease; position: relative; overflow: hidden;
+    }
+    .ob-btn::before { content: ''; position: absolute; inset: 0; opacity: 0; transition: opacity 0.2s ease; }
+    .ob-btn:hover { transform: translateY(-1px); }
+    .ob-btn.public::before { background: linear-gradient(135deg, rgba(91,207,255,0.07), transparent); }
+    .ob-btn.org::before    { background: linear-gradient(135deg, rgba(167,139,250,0.07), transparent); }
+    .ob-btn:hover::before  { opacity: 1; }
+    .ob-btn.public:hover { border-color: rgba(91,207,255,0.35); box-shadow: 0 0 16px rgba(91,207,255,0.1); }
+    .ob-btn.org:hover    { border-color: rgba(167,139,250,0.35); box-shadow: 0 0 16px rgba(167,139,250,0.1); }
+    .ob-btn-name { font-size: 13px; font-weight: 700; margin-bottom: 3px; display: flex; align-items: center; gap: 7px; position: relative; }
+    .ob-btn.public .ob-btn-name { color: var(--public-color); }
+    .ob-btn.org .ob-btn-name    { color: var(--org-color); }
+    .ob-btn-desc { font-size: 11px; color: var(--muted); line-height: 1.5; position: relative; }
+    .ob-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+    .ob-btn.public .ob-dot { background: var(--public-color); }
+    .ob-btn.org .ob-dot    { background: var(--org-color); }
+
+    /* ════ MAIN ════ */
+    .top-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .mode-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 10px; border-radius: 20px; font-size: 11px; font-weight: 700;
+      letter-spacing: 0.02em; border: 1px solid transparent;
+    }
+    .mode-badge.public   { background: rgba(91,207,255,0.1);  border-color: rgba(91,207,255,0.25);  color: var(--public-color); }
+    .mode-badge.org      { background: rgba(167,139,250,0.1); border-color: rgba(167,139,250,0.25); color: var(--org-color); }
+    .mode-badge.org-warn { background: rgba(255,143,163,0.1); border-color: rgba(255,143,163,0.25); color: var(--bad); }
+    .badge-dot { width: 6px; height: 6px; border-radius: 50%; }
+    .mode-badge.public .badge-dot   { background: var(--public-color); box-shadow: 0 0 5px var(--public-color); }
+    .mode-badge.org .badge-dot      { background: var(--org-color);    box-shadow: 0 0 5px var(--org-color); }
+    .mode-badge.org-warn .badge-dot { background: var(--bad); }
+    .settings-btn {
+      background: transparent; border: 1px solid var(--border); border-radius: 8px;
+      padding: 5px 9px; color: var(--muted); font-size: 14px;
+      cursor: pointer; transition: all 0.2s ease;
+    }
+    .settings-btn:hover { border-color: var(--accent); color: var(--text); }
+
+    /* Session alert */
+    .session-alert {
+      display: none; padding: 11px 12px; border-radius: 11px;
+      background: rgba(255,143,163,0.06); border: 1px solid rgba(255,143,163,0.2);
       margin-bottom: 10px;
     }
-
-    .header h1 {
-      margin: 0;
-      font-size: 22px;
-      font-weight: 700;
-      color: var(--text);
-      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    .session-alert.visible { display: block; }
+    .session-alert-msg { font-size: 12px; color: var(--bad); line-height: 1.5; margin-bottom: 10px; }
+    .session-cta { display: flex; gap: 7px; }
+    .cta-btn {
+      flex: 1; padding: 7px 0; border-radius: 8px;
+      font-size: 11px; font-weight: 700; cursor: pointer;
+      transition: all 0.2s ease; font-family: inherit; border: 1px solid transparent;
     }
+    .cta-login { background: linear-gradient(135deg, var(--accent), var(--accent-soft)); color: #fff; }
+    .cta-login:hover { box-shadow: 0 0 14px rgba(123,92,255,0.4); transform: translateY(-1px); }
+    .cta-request { background: transparent; border-color: var(--border); color: var(--muted); }
+    .cta-request:hover { border-color: var(--accent); color: var(--text); }
+    .cta-public { background: transparent; border-color: rgba(91,207,255,0.25); color: var(--public-color); }
+    .cta-public:hover { box-shadow: 0 0 10px rgba(91,207,255,0.15); transform: translateY(-1px); }
 
-    .card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 12px;
-      transition: box-shadow 0.3s ease;
-    }
-
-    .card:hover {
-      box-shadow: 0 0 18px rgba(123, 92, 255, 0.12);
-    }
-
+    /* Card / classify */
+    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 12px; margin-bottom: 10px; }
     textarea {
-      width: 100%;
-      height: 56px;
-      resize: none;
-      background: #0f0b1e;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 10px;
-      font-size: 14px;
-      font-weight: 400;
-      color: var(--text);
-      outline: none;
-      direction: rtl;
-      text-align: right;
-      transition: border 0.25s ease, box-shadow 0.25s ease;
+      width: 100%; height: 56px; resize: none;
+      background: var(--bg-deep); border: 1px solid var(--border);
+      border-radius: 10px; padding: 10px; font-size: 13px; font-family: inherit;
+      color: var(--text); outline: none; direction: rtl; text-align: right;
+      transition: border 0.2s ease, box-shadow 0.2s ease;
     }
-
-    textarea::placeholder {
-      color: #8e88b8;
-      font-size: 13px;
-    }
-
-    textarea:hover,
-    textarea:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 10px rgba(123, 92, 255, 0.22);
-    }
-
-    textarea:focus {
-      direction: ltr;
-      text-align: left;
-    }
-
-    .row {
-      display: flex;
-      gap: 8px;
-      margin-top: 10px;
-    }
-
-    button {
-      flex: 1;
-      border: none;
-      border-radius: 10px;
-      padding: 6px 0;
-      font-size: 14px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: background 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
-    }
-
+    textarea::placeholder { color: #6b6494; font-size: 12px; }
+    textarea:focus { border-color: var(--border-accent); box-shadow: 0 0 0 2px rgba(123,92,255,0.12); direction: ltr; text-align: left; }
+    .row { display: flex; gap: 8px; margin-top: 10px; }
     .btn-secondary {
-      background: transparent;
-      border: 1px solid var(--border);
-      color: var(--muted);
+      flex: 1; background: transparent; border: 1px solid var(--border); border-radius: 10px;
+      padding: 7px 0; font-size: 13px; font-weight: 700; font-family: inherit;
+      color: var(--muted); cursor: pointer; transition: all 0.2s ease;
     }
-
-    .btn-secondary:hover {
-      color: #ffffff;
-      border-color: var(--accent);
-      box-shadow: 0 0 12px rgba(123, 92, 255, 0.25);
-      transform: translateY(-1px);
-    }
-
+    .btn-secondary:hover { border-color: var(--accent); color: var(--text); }
     .btn-primary {
-      background: linear-gradient(135deg, var(--accent), var(--accent-soft));
-      color: #ffffff;
+      flex: 1; background: linear-gradient(135deg, var(--accent), var(--accent-soft));
+      border: none; border-radius: 10px; padding: 7px 0;
+      font-size: 13px; font-weight: 700; font-family: inherit; color: #fff;
+      cursor: pointer; transition: all 0.2s ease;
     }
-
-    .btn-primary:hover {
-      box-shadow: 0 0 14px rgba(123, 92, 255, 0.45), 0 0 22px rgba(94, 70, 200, 0.35);
-      transform: translateY(-1px);
-    }
-
-    .status {
-      margin-top: 8px;
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--muted);
-      text-align: center;
-      min-height: 18px;
-    }
-
-    .status.ok {
-      color: #8affc1;
-    }
-
-    .status.bad {
-      color: #ff9aa5;
-    }
-
-    .note {
-      margin-top: 8px;
-      padding: 8px 10px;
-      border-radius: 10px;
-      border: 1px dashed rgba(255, 255, 255, 0.14);
-      color: var(--muted);
-      font-size: 12px;
-      line-height: 1.35;
-      display: none;
-      background: rgba(15, 11, 30, 0.6);
-    }
-
-    .context-wrap {
-      margin-top: 10px;
-      display: none;
-    }
-
-    .context-label {
-      font-size: 12px;
-      color: var(--muted);
-      margin: 0 0 6px 0;
-      font-weight: 700;
-    }
-
-    #contextText {
-      height: 62px;
-    }
-
-    .context-actions {
-      margin-top: 8px;
-      display: flex;
-      gap: 8px;
-    }
-
+    .btn-primary:hover { box-shadow: 0 0 16px rgba(123,92,255,0.4); transform: translateY(-1px); }
+    .btn-primary:disabled { opacity: 0.35; cursor: not-allowed; transform: none; box-shadow: none; }
+    .status { margin-top: 8px; font-size: 12px; font-weight: 600; color: var(--muted); text-align: center; min-height: 18px; line-height: 1.5; }
+    .status.ok  { color: var(--ok); }
+    .status.bad { color: var(--bad); }
+    .submit-notice { display: none; margin-top: 8px; padding: 8px 10px; border-radius: 10px; font-size: 12px; line-height: 1.4; border: 1px dashed rgba(255,255,255,0.1); }
+    .submit-notice.info { color: var(--muted); }
+    .submit-notice.warn { color: var(--warn); background: rgba(255,211,122,0.05); }
+    .submit-notice.bad  { color: var(--bad);  background: rgba(255,143,163,0.05); }
+    .note { display: none; margin-top: 8px; padding: 8px 10px; border-radius: 10px; border: 1px dashed rgba(255,255,255,0.1); color: var(--muted); font-size: 12px; line-height: 1.4; }
+    .context-wrap { display: none; margin-top: 10px; }
+    .context-label { font-size: 12px; color: var(--muted); font-weight: 700; margin-bottom: 6px; }
+    #contextText { height: 60px; }
+    .context-actions { margin-top: 8px; display: flex; gap: 8px; }
     .btn-retry {
-      flex: 1;
-      background: transparent;
-      border: 1px solid var(--border);
-      color: #ffffff;
+      flex: 1; background: transparent; border: 1px solid var(--border); border-radius: 10px;
+      padding: 7px 0; font-size: 13px; font-weight: 700; font-family: inherit;
+      color: var(--text); cursor: pointer; transition: all 0.2s ease;
     }
+    .btn-retry:hover { border-color: var(--accent); }
 
-    .btn-retry:hover {
-      border-color: var(--accent);
-      box-shadow: 0 0 12px rgba(123, 92, 255, 0.25);
-      transform: translateY(-1px);
+    /* ════ SETTINGS ════ */
+    .settings-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .back-btn {
+      background: transparent; border: 1px solid var(--border); border-radius: 8px;
+      padding: 5px 10px; color: var(--muted); font-size: 13px;
+      cursor: pointer; transition: all 0.2s ease; font-family: inherit;
     }
+    .back-btn:hover { border-color: var(--accent); color: var(--text); }
+    .settings-title { font-size: 15px; font-weight: 700; }
+    .settings-section { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 14px; margin-bottom: 10px; }
+    .settings-section-label { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px; }
+    .current-mode-display {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 12px; background: var(--bg-deep); border-radius: 10px;
+      border: 1px solid var(--border); margin-bottom: 10px;
+    }
+    .cmd-label { font-size: 11px; color: var(--muted); font-weight: 600; }
+    .cmd-value { font-size: 13px; font-weight: 700; }
+    .cmd-value.public { color: var(--public-color); }
+    .cmd-value.org    { color: var(--org-color); }
+    .settings-info-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .settings-info-row:last-child { border-bottom: none; }
+    .sir-key { color: var(--muted); }
+    .sir-val { color: var(--text); font-weight: 600; }
+    .switch-mode-btns { display: flex; gap: 8px; margin-top: 12px; }
+    .sw-btn {
+      flex: 1; padding: 9px 0; border-radius: 10px; border: 1px solid var(--border);
+      background: transparent; font-size: 12px; font-weight: 700; font-family: inherit;
+      cursor: pointer; transition: all 0.2s ease;
+    }
+    .sw-btn.public { color: var(--public-color); }
+    .sw-btn.org    { color: var(--org-color); }
+    .sw-btn:hover  { transform: translateY(-1px); }
+    .sw-btn.public:hover { border-color: rgba(91,207,255,0.35); box-shadow: 0 0 12px rgba(91,207,255,0.12); }
+    .sw-btn.org:hover    { border-color: rgba(167,139,250,0.35); box-shadow: 0 0 12px rgba(167,139,250,0.12); }
+    .sw-btn.active-sw { opacity: 0.3; cursor: default; pointer-events: none; }
   </style>
 </head>
-
 <body>
-  <div class="wrap">
-    <div class="header">
-      <h1>راصد المحتوى التحريضي الذكي</h1>
+
+  <!-- ════ ONBOARDING ════ -->
+  <div id="view-onboarding" class="view">
+    <div class="ob-logo">🛡️</div>
+    <div class="ob-title">راصد المحتوى التحريضي</div>
+    <div class="ob-sub">كيف تريد استخدام الأداة؟<br>يمكنك تغيير هذا لاحقًا من الإعدادات.</div>
+    <div class="ob-label">اختر وضع التشغيل</div>
+    <div class="ob-options">
+      <button class="ob-btn public" id="ob-public-btn">
+        <div class="ob-btn-name"><span class="ob-dot"></span>استخدام عام</div>
+        <div class="ob-btn-desc">بدون حساب. مناسب للأفراد الذين يريدون فحص منشورات بسرعة.</div>
+      </button>
+      <button class="ob-btn org" id="ob-org-btn">
+        <div class="ob-btn-name"><span class="ob-dot"></span>باسم منظمة</div>
+        <div class="ob-btn-desc">للعمل تحت هوية منظمة محددة. يتطلب تسجيل دخول.</div>
+      </button>
+    </div>
+  </div>
+
+  <!-- ════ MAIN ════ -->
+  <div id="view-main" class="view">
+    <div class="top-bar">
+      <div id="modeBadge" class="mode-badge public">
+        <span class="badge-dot"></span>
+        <span id="badgeText">استخدام عام</span>
+      </div>
+      <button class="settings-btn" id="openSettingsBtn" title="الإعدادات">⚙</button>
+    </div>
+
+    <!-- Org blocked state: alert + CTA buttons -->
+    <div id="sessionAlert" class="session-alert">
+      <div id="sessionAlertMsg" class="session-alert-msg"></div>
+      <div class="session-cta" id="sessionCta"></div>
     </div>
 
     <div class="card">
-      <textarea id="postUrl" placeholder="رابط المنشور..."></textarea>
-
+      <textarea id="postUrl" placeholder="ألصق رابط المنشور هنا..."></textarea>
       <div class="row">
         <button id="fillBtn" class="btn-secondary">من الصفحة</button>
         <button id="btn" class="btn-primary">فحص فوري</button>
       </div>
-
       <div id="result" class="status"></div>
-
+      <div id="submitNotice" class="submit-notice"></div>
       <div id="lowConfNote" class="note"></div>
-
       <div id="contextWrap" class="context-wrap">
-        <p class="context-label">سياق اختياري (سطر/سطرين) لتحسين الدقة:</p>
-        <textarea id="contextText"
-          placeholder="مثال: المنشور ساخر / اقتباس من خبر / رد على صورة أو نقاش سابق"></textarea>
-
+        <p class="context-label">سياق اختياري لتحسين الدقة:</p>
+        <textarea id="contextText" placeholder="مثال: المنشور ساخر / اقتباس / رد على صورة..."></textarea>
         <div class="context-actions">
           <button id="reclassifyBtn" class="btn-retry">إعادة التصنيف مع السياق</button>
         </div>
       </div>
+    </div>
+  </div>
 
+  <!-- ════ SETTINGS ════ -->
+  <div id="view-settings" class="view">
+    <div class="settings-header">
+      <button class="back-btn" id="backBtn">→ رجوع</button>
+      <div class="settings-title">الإعدادات</div>
+    </div>
+    <div class="settings-section">
+      <div class="settings-section-label">وضع التشغيل</div>
+      <div class="current-mode-display">
+        <span class="cmd-label">الوضع الحالي</span>
+        <span id="settingsModeValue" class="cmd-value public">استخدام عام</span>
+      </div>
+      <div>
+        <div class="settings-info-row">
+          <span class="sir-key">الحساب</span>
+          <span id="s-auth" class="sir-val">غير مطلوب</span>
+        </div>
+        <div class="settings-info-row">
+          <span class="sir-key">المنظمة</span>
+          <span id="s-org" class="sir-val">—</span>
+        </div>
+      </div>
+      <div class="switch-mode-btns">
+        <button class="sw-btn public" id="sw-public-btn">استخدام عام</button>
+        <button class="sw-btn org" id="sw-org-btn">باسم منظمة</button>
+      </div>
     </div>
   </div>
 
   <script type="module" src="popup.js"></script>
 </body>
-
 </html>

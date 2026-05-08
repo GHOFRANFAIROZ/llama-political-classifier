@@ -62,12 +62,22 @@ function ensureSlug(o: Org) {
   return o.slug || o.id.replaceAll("_", "-");
 }
 
+function formatOrgDisplayName(raw?: string | null) {
+  if (!raw) return "";
+
+  return raw
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b[a-z]/g, (m) => m.toUpperCase());
+}
+
 function makeFallbackOrg(orgId: string): Org {
   const cleanId = String(orgId || "").trim();
   return {
     id: cleanId,
     slug: cleanId.replaceAll("_", "-"),
-    name: cleanId.replaceAll("_", " "),
+    name: formatOrgDisplayName(cleanId),
   };
 }
 
@@ -117,13 +127,22 @@ export function OrgProvider({ children }: { children: ReactNode }) {
       const rawOrgs = Array.isArray(data?.orgs)
         ? data.orgs
         : Array.isArray(data?.results)
-        ? data.results
-        : [];
+          ? data.results
+          : [];
 
       const apiOrgs: Org[] = rawOrgs
         .map((o: any) => {
           const id = String(o?.id ?? o?.org_id ?? "").trim();
-          const name = String(o?.name ?? o?.display_name ?? "").trim();
+
+          const rawName = String(
+            o?.display_name ??
+            o?.displayName ??
+            o?.name ??
+            o?.slug ??
+            id
+          ).trim();
+
+          const name = formatOrgDisplayName(rawName);
 
           return {
             id,

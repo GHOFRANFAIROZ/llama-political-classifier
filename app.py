@@ -8,7 +8,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 import uuid
 import time
-
+import hashlib
 # ================================
 # Import modules (B2 Architecture)
 # ================================
@@ -92,7 +92,7 @@ from google import genai
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 DEFAULT_MODEL = os.getenv("GEMINI_MODEL", "models/gemini-2.5-flash")
-
+logger.warning(f"DEBUG DEFAULT_MODEL={DEFAULT_MODEL}")
 if not GEMINI_API_KEY:
     logger.warning("⚠️ GEMINI_API_KEY is missing")
 
@@ -257,6 +257,13 @@ TEXT_LABEL_TO_ID = {
 
 PROMPT_VERSION = "v5"
 
+def make_contextual_dedupe_key(source, url, text, context=""):
+    base_key = make_dedupe_key(source, url, text)
+    context = str(context or "").strip()
+    if not context:
+        return base_key
+    context_hash = hashlib.sha256(context.encode("utf-8")).hexdigest()[:12]
+    return f"{base_key}:reclassified:{context_hash}"
 
 def normalize_ai_response(ai_data, request_id, path):
     if ai_data is None:
@@ -485,7 +492,7 @@ def classify_v2():
         classification_status = normalized["classification_status"]
 
         text_for_sheet = text + (f"\n\n[UserContext]\n{context}" if context else "")
-        dedupe_key = make_dedupe_key(source, url, text)
+        dedupe_key = make_contextual_dedupe_key(source, url, text, context)
 
         duplicate = False
         sheet_title = "org_firestore_only" if org_metadata else "unavailable"
@@ -531,25 +538,30 @@ def classify_v2():
             sheet_title = sheet_result["sheet_title"]
             sheet_status = sheet_result["sheet_status"]
 
-            save_public_report(
-                {
-                    "text": text,
-                    "url": url,
-                    "author": author,
-                    "post_time": post_time,
-                    "label_id": raw_label_id,
-                    "reason_ar": reason_ar,
-                    "confidence_score": conf,
-                    "source": source,
-                    "context": context,
-                    "dedupe_key": dedupe_key,
-                    "parse_status": parse_status,
-                    "fallback_used": fallback_used,
-                    "review_recommended": review_recommended,
-                    "classification_status": classification_status,
-                    "sheet_status": sheet_status,
-                }
-            )
+            if sheet_status != "duplicate":
+                save_public_report(
+                    {
+                        "text": text,
+                        "url": url,
+                        "author": author,
+                        "post_time": post_time,
+                        "label_id": raw_label_id,
+                        "reason_ar": reason_ar,
+                        "confidence_score": conf,
+                        "source": source,
+                        "context": context,
+                        "dedupe_key": dedupe_key,
+                        "parse_status": parse_status,
+                        "fallback_used": fallback_used,
+                        "review_recommended": review_recommended,
+                        "classification_status": classification_status,
+                        "sheet_status": sheet_status,
+                    }
+                )
+            else:
+                logger.info(
+                    f"req={request.request_id} firestore_save_skipped_duplicate=1 dedupe_key={dedupe_key}"
+                )
 
         return jsonify(
             {

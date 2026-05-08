@@ -54,6 +54,29 @@ function NavbarContent({ onOpenSidebar }: NavbarProps) {
 
   const scope = currentOrg ? "org" : "public";
   const orgId = currentOrg?.id || "";
+  function formatOrgDisplayName(raw?: string | null) {
+  if (!raw) return "";
+
+  return raw
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b[a-z]/g, (m) => m.toUpperCase());
+}
+
+function getOrgDisplayName(org?: any) {
+  const raw =
+    org?.display_name ??
+    org?.displayName ??
+    org?.name ??
+    org?.slug ??
+    org?.id ??
+    "";
+
+  return formatOrgDisplayName(raw);
+}
+
+const currentOrgDisplayName = getOrgDisplayName(currentOrg);
 
   const suggestCacheRef = useRef<
     Map<string, { ts: number; suggestions: { text: string }[] }>
@@ -329,7 +352,7 @@ function NavbarContent({ onOpenSidebar }: NavbarProps) {
               {currentOrg && (
                 <span className="hidden xl:inline-flex max-w-[180px] truncate text-xs font-normal text-purple-400 px-2 py-0.5 rounded-full border border-purple-700/60 bg-black/30">
                   Workspace:&nbsp;
-                  <span className="truncate text-purple-100">{currentOrg.name}</span>
+                  <span className="truncate text-purple-100">{currentOrgDisplayName}</span>
                 </span>
               )}
 
@@ -500,7 +523,7 @@ function NavbarContent({ onOpenSidebar }: NavbarProps) {
                 ) : (
                   orgs.map((org) => (
                     <option key={org.id} value={org.id}>
-                      {org.name} {org.plan ? `(${org.plan})` : ""}
+                      {getOrgDisplayName(org)} {org.plan ? `(${org.plan})` : ""}
                     </option>
                   ))
                 )}
@@ -516,7 +539,7 @@ function NavbarContent({ onOpenSidebar }: NavbarProps) {
                 Organization
               </span>
               <div className="w-full truncate bg-[#120F18] border border-purple-900/60 rounded-lg px-3 py-2.5 text-xs text-purple-100">
-                {currentOrg?.name || userProfile?.org_id || "Assigned org"}
+                {currentOrgDisplayName || formatOrgDisplayName(userProfile?.org_id) || "Assigned org"}
               </div>
             </div>
           )}

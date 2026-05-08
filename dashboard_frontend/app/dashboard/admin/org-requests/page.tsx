@@ -103,6 +103,25 @@ function SummaryCard({
   );
 }
 
+function InfoRow({
+  label,
+  value,
+  breakAll = false,
+}: {
+  label: string;
+  value?: string | null;
+  breakAll?: boolean;
+}) {
+  return (
+    <div>
+      <span className="text-purple-500">{label}: </span>
+      <span className={`text-purple-200 ${breakAll ? "break-all" : ""}`}>
+        {value || "—"}
+      </span>
+    </div>
+  );
+}
+
 export default function AdminOrgRequestsPage() {
   const { user, userProfile, loading, profileLoading } = useAuth();
   const router = useRouter();
@@ -257,12 +276,18 @@ export default function AdminOrgRequestsPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div>
+        <div className="space-y-2">
+          <span className="inline-flex rounded-full border border-purple-700/50 bg-black/30 px-3 py-1 text-[11px] uppercase tracking-wide text-purple-300">
+            Admin review queue
+          </span>
+
           <h1 className="text-3xl sm:text-4xl font-bold text-purple-100">
             Organization requests
           </h1>
-          <p className="text-purple-400 mt-2 max-w-3xl">
-            Review pending organization access requests and approve or reject them.
+
+          <p className="text-purple-400 max-w-3xl">
+            Review organization onboarding requests, approve valid workspaces,
+            and reject requests that are incomplete or not a fit.
           </p>
         </div>
 
@@ -290,9 +315,9 @@ export default function AdminOrgRequestsPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <SummaryCard label="Shown requests" value={counts.all} />
-        <SummaryCard label="Pending" value={counts.pending} tone="amber" />
-        <SummaryCard label="Approved" value={counts.approved} tone="emerald" />
-        <SummaryCard label="Rejected" value={counts.rejected} tone="red" />
+        <SummaryCard label="Pending in view" value={counts.pending} tone="amber" />
+        <SummaryCard label="Approved in view" value={counts.approved} tone="emerald" />
+        <SummaryCard label="Rejected in view" value={counts.rejected} tone="red" />
       </div>
 
       {error ? (
@@ -307,7 +332,7 @@ export default function AdminOrgRequestsPage() {
         </div>
       ) : items.length === 0 ? (
         <div className="rounded-2xl border border-purple-900/50 bg-[#120F18] p-6 text-purple-300">
-          No requests found for this filter.
+          No organization requests found for this filter.
         </div>
       ) : (
         <div className="space-y-4">
@@ -321,7 +346,7 @@ export default function AdminOrgRequestsPage() {
                 className="rounded-2xl border border-purple-900/50 bg-[#120F18] p-4 sm:p-5 shadow-[0_0_18px_rgba(176,92,255,0.18)]"
               >
                 <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                  <div className="min-w-0 flex-1 space-y-3">
+                  <div className="min-w-0 flex-1 space-y-4">
                     <div className="flex flex-wrap items-center gap-2">
                       <h2 className="text-xl font-semibold text-purple-100 break-words">
                         {item.organization_name}
@@ -341,53 +366,18 @@ export default function AdminOrgRequestsPage() {
                     </p>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-purple-400">
-                      <div>
-                        <span className="text-purple-500">Request ID: </span>
-                        <span className="text-purple-200 break-all">
-                          {item.request_id}
-                        </span>
-                      </div>
-
-                      <div>
-                        <span className="text-purple-500">Org ID preview: </span>
-                        <span className="text-purple-200">
-                          {item.org_id_preview || "—"}
-                        </span>
-                      </div>
-
-                      <div>
-                        <span className="text-purple-500">Slug: </span>
-                        <span className="text-purple-200">
-                          {item.organization_slug || "—"}
-                        </span>
-                      </div>
-
-                      <div>
-                        <span className="text-purple-500">Country: </span>
-                        <span className="text-purple-200">
-                          {item.country || "—"}
-                        </span>
-                      </div>
-
-                      <div>
-                        <span className="text-purple-500">Created: </span>
-                        <span className="text-purple-200">
-                          {formatDateTime(item.created_at)}
-                        </span>
-                      </div>
-
-                      <div>
-                        <span className="text-purple-500">Reviewed: </span>
-                        <span className="text-purple-200">
-                          {formatDateTime(item.reviewed_at)}
-                        </span>
-                      </div>
-
+                      <InfoRow label="Request ID" value={item.request_id} breakAll />
+                      <InfoRow label="Org ID preview" value={item.org_id_preview} />
+                      <InfoRow label="Slug" value={item.organization_slug} />
+                      <InfoRow label="Country" value={item.country} />
+                      <InfoRow label="Created" value={formatDateTime(item.created_at)} />
+                      <InfoRow label="Reviewed" value={formatDateTime(item.reviewed_at)} />
                       <div className="sm:col-span-2">
-                        <span className="text-purple-500">Reviewed by: </span>
-                        <span className="text-purple-200 break-all">
-                          {item.reviewed_by_email || "—"}
-                        </span>
+                        <InfoRow
+                          label="Reviewed by"
+                          value={item.reviewed_by_email}
+                          breakAll
+                        />
                       </div>
                     </div>
 
@@ -398,19 +388,19 @@ export default function AdminOrgRequestsPage() {
                     ) : null}
 
                     {item.review_note ? (
-                      <div className="text-xs text-amber-300 break-words">
+                      <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-200 break-words">
                         Review note: {item.review_note}
                       </div>
                     ) : null}
 
                     {item.org_id ? (
-                      <div className="text-xs text-emerald-300 break-all">
+                      <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3 text-xs text-emerald-200 break-all">
                         Approved org_id: {item.org_id}
                       </div>
                     ) : null}
 
                     {item.linked_user_uid ? (
-                      <div className="text-xs text-purple-400 break-all">
+                      <div className="rounded-xl border border-purple-700/30 bg-black/20 p-3 text-xs text-purple-300 break-all">
                         Linked user UID: {item.linked_user_uid}
                       </div>
                     ) : null}

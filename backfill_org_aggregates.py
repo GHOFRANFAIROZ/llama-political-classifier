@@ -13,6 +13,7 @@ from firebase_admin import firestore
 from firestore_utils import (
     _to_datetime,
     _tokenize,
+    _is_meaningful_token,
     _analytics_days_ref,
     _analytics_meta_ref,
     _terms_days_ref,
@@ -40,24 +41,48 @@ def _is_hate(label_id: str) -> bool:
 
 
 def _limited_terms(data: Dict[str, Any], max_terms: int = 20) -> List[str]:
-    toks = data.get("searchable_tokens") or []
-    if not toks:
-        toks = _tokenize((data.get("text") or "") + " " + (data.get("reason_ar") or ""))
+    """
+    نعيد بناء الكلمات من النص الأصلي أولًا بدل الاعتماد على searchable_tokens
+    لأن searchable_tokens القديمة قد تكون ملوثة بكلمات reason_ar التفسيرية.
+    """
+    text = str(data.get("text") or "").strip()
+    reason = str(data.get("reason_ar") or "").strip()
+
+    candidates: List[str] = []
+
+    # المصدر الأساسي = النص الأصلي
+    if text:
+        candidates.extend(_tokenize(text))
+
+    # فقط إذا النص فقير جدًا، نكمله من السبب
+    if len(candidates) < 6 and reason:
+        candidates.extend(_tokenize(reason))
+
     out: List[str] = []
-    for t in toks:
+    seen = set()
+
+    for t in candidates:
         if not t:
             continue
-        tl = str(t).lower()
-        if len(tl) < 3:
-            continue
-        # safety: no dots in field names
+
+        tl = str(t).lower().strip()
+
         if "." in tl:
             tl = tl.replace(".", "_")
+
+        if not _is_meaningful_token(tl):
+            continue
+
+        if tl in seen:
+            continue
+
+        seen.add(tl)
         out.append(tl)
+
         if len(out) >= max_terms:
             break
-    return out
 
+    return out
 
 # ----------------------------
 # Reset helpers (safe delete)
