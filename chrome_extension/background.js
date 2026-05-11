@@ -1,7 +1,7 @@
 // ==================================
 // DEV / PROD Switch  background.js
 // ==================================
-const IS_DEV = true;
+const IS_DEV = false;
 
 const DEV_API_BASE = "http://127.0.0.1:10000";
 const PROD_API_BASE = "https://my-classifier-v2.onrender.com";
