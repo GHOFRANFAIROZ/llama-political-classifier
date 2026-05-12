@@ -25,7 +25,14 @@ const PLATFORMS = [
   "News Website",
 ];
 
-const CLASSIFICATIONS = ["All", "Hate Speech", "Abusive", "Neutral"] as const;
+const CLASSIFICATIONS = [
+  "All",
+  "Violence",
+  "Protected Political Opinion",
+  "Hate Speech",
+  "Abusive",
+  "Neutral",
+] as const;
 
 const DATE_RANGES = [
   { id: "24h", label: "Last 24h" },

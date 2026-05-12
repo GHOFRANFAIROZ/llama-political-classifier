@@ -23,6 +23,7 @@ const CLASS_API_TO_UI: Record<string, string | undefined> = {
   HATE_SPEECH_INDIVIDUAL: "Hate Speech",
   CALL_FOR_VIOLENCE: "Violence",
   VIOLENCE: "Violence",
+  PROTECTED_POLITICAL_OPINION: "Protected Political Opinion",
   ABUSIVE: "Abusive",
   ABUSE: "Abusive",
   HARASSMENT: "Abusive",
@@ -87,12 +88,6 @@ export function extractScore(
   if (r.toxicity_score != null) return clamp0to100(r.toxicity_score);
   if (r.toxicityScore != null) return clamp0to100(r.toxicityScore);
   if (r.toxicity != null) return clamp0to100(r.toxicity);
-
-  if (typeof r.confidence_score === "number") {
-    const x =
-      r.confidence_score <= 1 ? r.confidence_score * 100 : r.confidence_score;
-    return clamp0to100(x);
-  }
 
   return deriveScoreFromClass(displayClass, rawClass);
 }

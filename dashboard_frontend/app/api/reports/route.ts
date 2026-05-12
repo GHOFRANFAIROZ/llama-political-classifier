@@ -42,18 +42,20 @@ function computeDateRange(range: string): { from?: string; to?: string } {
 
 const PLATFORM_UI_TO_API: Record<string, string | null> = {
   "All platforms": null,
-  "Twitter (X)": "Twitter (X)",
-  Facebook: "Facebook",
-  Instagram: "Instagram",
-  TikTok: "TikTok",
-  "News Website": "News Website",
+  "Twitter (X)": "X",
+  Facebook: "facebook",
+  Instagram: "instagram",
+  TikTok: "tiktok",
+  "News Website": "news",
 };
 
 const CLASS_UI_TO_API: Record<string, string | null> = {
   All: null,
-  "Hate Speech": "Hate Speech",
-  Abusive: "Abusive",
-  Neutral: "Neutral",
+  Violence: "CALL_FOR_VIOLENCE",
+  "Protected Political Opinion": "PROTECTED_POLITICAL_OPINION",
+  "Hate Speech": "HATE_SPEECH",
+  Abusive: "ABUSIVE",
+  Neutral: "NEUTRAL_OTHER",
 };
 
 function normalizePlatformFilter(input: string): string {
@@ -116,11 +118,11 @@ function mapReportItem(r: any) {
 
   const rawClassification = String(
     r?.classification ??
-      r?.label_en ??
-      r?.label ??
-      r?.label_id ??
-      r?.category ??
-      "Unknown"
+    r?.label_en ??
+    r?.label ??
+    r?.label_id ??
+    r?.category ??
+    "Unknown"
   );
 
   const displayClassification = normalizeClassDisplay(rawClassification);
@@ -129,11 +131,11 @@ function mapReportItem(r: any) {
     id: String(r?.id ?? r?.report_id ?? r?.dedupe_key ?? r?.doc_id ?? ""),
     textSnippet: String(
       r?.text_snippet ??
-        r?.textSnippet ??
-        r?.text ??
-        r?.snippet ??
-        r?.content ??
-        ""
+      r?.textSnippet ??
+      r?.text ??
+      r?.snippet ??
+      r?.content ??
+      ""
     ),
     platform: normalizePlatformDisplay(rawPlatform),
     classification: displayClassification,
@@ -245,6 +247,8 @@ export async function GET(req: NextRequest) {
     backendUrl.searchParams.set("sort_by", sortBy);
 
     if (q) backendUrl.searchParams.set("q", q);
+    if (platform) backendUrl.searchParams.set("platform", platform);
+    if (classification) backendUrl.searchParams.set("classification", classification);
   }
 
   try {
@@ -277,14 +281,20 @@ export async function GET(req: NextRequest) {
     const rawResults = getRawResults(data);
 
     const normalizedResults = rawResults.map(mapReportItem);
-    const filteredResults = normalizedResults.filter((report) => {
-      if (!matchesPlatform(report, platform)) return false;
-      if (!matchesClassification(report, classification)) return false;
-      return true;
-    });
+
+    const filteredResults = isOrgMode
+      ? normalizedResults.filter((report) => {
+        if (!matchesPlatform(report, platform)) return false;
+        if (!matchesClassification(report, classification)) return false;
+        return true;
+      })
+      : normalizedResults;
 
     const total = getTotalCount(data, filteredResults);
-    const paginatedResults = filteredResults.slice(offset, offset + limit);
+
+    const paginatedResults = isOrgMode
+      ? filteredResults.slice(offset, offset + limit)
+      : filteredResults;
 
     return NextResponse.json({
       results: paginatedResults,
