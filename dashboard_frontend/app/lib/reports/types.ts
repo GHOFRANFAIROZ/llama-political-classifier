@@ -10,6 +10,11 @@ export type ReportItem = {
   classification_status?: string;
   fallback_used?: boolean;
   review_recommended?: boolean;
+  review_status?: "unreviewed" | "correct" | "incorrect" | "needs_review" | null;
+  corrected_label?: string | null;
+  reviewer_note?: string | null;
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
   parse_status?: string;
   sheet_status?: string;
   ai_explanation?: string;

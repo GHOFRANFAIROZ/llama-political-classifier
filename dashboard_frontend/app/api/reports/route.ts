@@ -155,6 +155,11 @@ function mapReportItem(r: any) {
     parse_status: String(r?.parse_status ?? ""),
     sheet_status: String(r?.sheet_status ?? ""),
     ai_explanation: String(r?.ai_explanation ?? r?.explanation ?? ""),
+    review_status: r?.review_status ?? null,
+    corrected_label: r?.corrected_label ?? null,
+    reviewer_note: r?.reviewer_note ?? null,
+    reviewed_by: r?.reviewed_by ?? null,
+    reviewed_at: r?.reviewed_at ?? null,
   };
 }
 
