@@ -276,12 +276,13 @@ export default function ReportsPage() {
     >
       <div>
         <h1 className="text-3xl md:text-4xl font-bold mb-2 tracking-tight text-purple-100">
-          Reports
+          {scope === "org" ? "Org Reports" : "Public Reports"}
         </h1>
         <p className="text-purple-400 max-w-2xl">
-          Browse reports in your selected scope (Org workspace or Public).
+          {scope === "org"
+            ? "Browse reports for the selected organization workspace."
+            : "Browse public reports collected from the public X monitoring pipeline."}
         </p>
-
         <div className="mt-3 flex items-center gap-2 flex-wrap">
           <span className="text-[11px] px-2.5 py-1 rounded-full border border-purple-500/40 bg-purple-500/10 text-purple-200">
             {scope === "org" ? "Org workspace" : "Public"}
