@@ -957,6 +957,52 @@ def search_reports():
         return jsonify({"error": "Internal server error"}), 500
 
 # ================================
+# REVIEW PUBLIC REPORT
+# ================================
+@app.route("/api/reports/review", methods=["PATCH"])
+def review_public_report():
+    try:
+        from firestore_utils import update_public_report_review
+
+        data = request.get_json(silent=True) or {}
+
+        doc_id = str(data.get("doc_id") or "").strip()
+        review_status = str(data.get("review_status") or "").strip()
+        corrected_label = data.get("corrected_label")
+        reviewer_note = data.get("reviewer_note")
+        reviewed_by = data.get("reviewed_by")
+
+        if not doc_id:
+            return jsonify({"error": "doc_id is required"}), 400
+
+        if review_status not in {"correct", "incorrect", "needs_review", "unreviewed"}:
+            return jsonify({"error": "invalid review_status"}), 400
+
+        ok = update_public_report_review(
+            doc_id=doc_id,
+            review_status=review_status,
+            corrected_label=corrected_label,
+            reviewer_note=reviewer_note,
+            reviewed_by=reviewed_by,
+        )
+
+        if not ok:
+            return jsonify({"error": "Failed to save review"}), 500
+
+        return jsonify({
+            "success": True,
+            "doc_id": doc_id,
+            "review_status": review_status,
+        }), 200
+
+    except Exception as e:
+        logger.error(
+            f"req={getattr(request, 'request_id', 'unknown')} [PUBLIC REVIEW ERROR] {e}",
+            exc_info=True,
+        )
+        return jsonify({"error": "Internal server error"}), 500
+
+# ================================
 # ORGS LIST (for dashboard)
 # ================================
 @app.route("/orgs", methods=["GET"])

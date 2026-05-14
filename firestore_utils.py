@@ -1550,3 +1550,51 @@ def update_org_request_status(
 
     doc_ref.set(payload, merge=True)
     return _normalize_org_request_doc(doc_ref.get())
+
+# ================================
+# Update Public Report Review
+# ================================
+def update_public_report_review(
+    doc_id: str,
+    review_status: str,
+    corrected_label: Optional[str] = None,
+    reviewer_note: Optional[str] = None,
+    reviewed_by: Optional[str] = None,
+) -> bool:
+    allowed = {"correct", "incorrect", "needs_review", "unreviewed"}
+
+    doc_id = str(doc_id or "").strip()
+    review_status = str(review_status or "").strip()
+
+    if not doc_id:
+        raise ValueError("doc_id is required")
+
+    if review_status not in allowed:
+        raise ValueError(f"review_status must be one of {allowed}")
+
+    payload: Dict[str, Any] = {
+        "review_status": review_status,
+        "reviewed_at": firestore.SERVER_TIMESTAMP,
+    }
+
+    if corrected_label is not None:
+        payload["corrected_label"] = str(corrected_label).strip() or None
+
+    if reviewer_note is not None:
+        payload["reviewer_note"] = str(reviewer_note).strip() or None
+
+    if reviewed_by is not None:
+        payload["reviewed_by"] = str(reviewed_by).strip() or None
+
+    try:
+        doc_ref = db.collection("reports_public").document(doc_id)
+        if not doc_ref.get().exists:
+            logger.warning("[Firestore REVIEW] report not found: reports_public/%s", doc_id)
+            return False
+
+        doc_ref.set(payload, merge=True)
+        logger.info("[Firestore] Updated review on reports_public/%s", doc_id)
+        return True
+    except Exception as e:
+        logger.error("[Firestore REVIEW ERROR] %s", e, exc_info=True)
+        return False
