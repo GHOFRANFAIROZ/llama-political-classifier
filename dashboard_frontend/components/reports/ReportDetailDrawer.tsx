@@ -388,6 +388,55 @@ export default function ReportDetailDrawer({
                 />
               </div>
 
+              <div className="rounded-xl border border-purple-500/20 bg-gradient-to-br from-purple-950/30 via-black to-black p-4 text-sm text-gray-100 space-y-3">
+                <p className="text-xs uppercase tracking-wide text-gray-500">
+                  Human Review
+                </p>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <p className="text-xs text-gray-500">Review status</p>
+                    <p className="font-medium text-gray-100">
+                      {report.review_status ?? "unreviewed"}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs text-gray-500">Corrected label</p>
+                    <p className="font-medium text-gray-100">
+                      {report.corrected_label ?? "-"}
+                    </p>
+                  </div>
+
+                  {report.reviewer_note ? (
+                    <div className="sm:col-span-2">
+                      <p className="text-xs text-gray-500">Reviewer note</p>
+                      <p className="font-medium text-gray-100">
+                        {report.reviewer_note}
+                      </p>
+                    </div>
+                  ) : null}
+
+                  {report.reviewed_by ? (
+                    <div>
+                      <p className="text-xs text-gray-500">Reviewed by</p>
+                      <p className="font-medium text-gray-100">
+                        {report.reviewed_by}
+                      </p>
+                    </div>
+                  ) : null}
+
+                  {report.reviewed_at ? (
+                    <div>
+                      <p className="text-xs text-gray-500">Reviewed at</p>
+                      <p className="font-medium text-gray-100">
+                        {formatDate(report.reviewed_at)}
+                      </p>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <p className="text-xs uppercase tracking-wide text-gray-500">
                   AI explanation
