@@ -146,6 +146,15 @@ export default function ReportDetailDrawer({
     null
   );
 
+  const [reviewStatus, setReviewStatus] = useState<string | null>(
+    report?.review_status ?? null
+  );
+  const [reviewSaving, setReviewSaving] = useState(false);
+
+  useEffect(() => {
+    setReviewStatus(report?.review_status ?? null);
+  }, [report?.id, report?.review_status]);
+
   useEffect(() => {
     if (!isOpen) return;
     const onKey = (e: KeyboardEvent) => {
@@ -180,6 +189,35 @@ export default function ReportDetailDrawer({
     if (risk.tone === "yellow") return "bg-yellow-500/50";
     return "bg-emerald-500/50";
   }, [risk.tone]);
+
+  const handleSaveReview = async (status: string) => {
+    if (!report?.id) return;
+
+    try {
+      setReviewSaving(true);
+
+      const response = await fetch("/api/reports/review", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          doc_id: report.id,
+          review_status: status,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to save review");
+      }
+
+      setReviewStatus(status);
+      setToast({ kind: "ok", msg: "Review saved" });
+    } catch (error) {
+      console.error(error);
+      setToast({ kind: "err", msg: "Failed to save review" });
+    } finally {
+      setReviewSaving(false);
+    }
+  };
 
   const handleCopySnippet = async () => {
     if (!report?.textSnippet) return;
@@ -397,7 +435,7 @@ export default function ReportDetailDrawer({
                   <div>
                     <p className="text-xs text-gray-500">Review status</p>
                     <p className="font-medium text-gray-100">
-                      {report.review_status ?? "unreviewed"}
+                      {reviewStatus ?? "unreviewed"}
                     </p>
                   </div>
 
@@ -434,6 +472,33 @@ export default function ReportDetailDrawer({
                       </p>
                     </div>
                   ) : null}
+                </div>
+
+                <div className="flex flex-wrap gap-2 border-t border-purple-500/20 pt-3">
+                  <button
+                    type="button"
+                    disabled={reviewSaving}
+                    onClick={() => handleSaveReview("correct")}
+                    className="rounded-lg border border-emerald-500/40 px-3 py-1.5 text-xs font-medium text-emerald-200 hover:bg-emerald-500/10 disabled:opacity-50"
+                  >
+                    Correct
+                  </button>
+                  <button
+                    type="button"
+                    disabled={reviewSaving}
+                    onClick={() => handleSaveReview("incorrect")}
+                    className="rounded-lg border border-red-500/40 px-3 py-1.5 text-xs font-medium text-red-200 hover:bg-red-500/10 disabled:opacity-50"
+                  >
+                    Incorrect
+                  </button>
+                  <button
+                    type="button"
+                    disabled={reviewSaving}
+                    onClick={() => handleSaveReview("needs_review")}
+                    className="rounded-lg border border-yellow-500/40 px-3 py-1.5 text-xs font-medium text-yellow-200 hover:bg-yellow-500/10 disabled:opacity-50"
+                  >
+                    Needs review
+                  </button>
                 </div>
               </div>
 
