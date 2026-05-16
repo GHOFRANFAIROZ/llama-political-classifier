@@ -480,23 +480,6 @@ export default function ReportDetailDrawer({
                       {reviewStatus ?? "unreviewed"}
                     </p>
                   </div>
-
-                  <div>
-                    <p className="text-xs text-gray-500">Corrected label</p>
-                    <p className="font-medium text-gray-100">
-                      {report.corrected_label ?? "-"}
-                    </p>
-                  </div>
-
-                  {report.reviewer_note ? (
-                    <div className="sm:col-span-2">
-                      <p className="text-xs text-gray-500">Reviewer note</p>
-                      <p className="font-medium text-gray-100">
-                        {report.reviewer_note}
-                      </p>
-                    </div>
-                  ) : null}
-
                   {report.reviewed_by ? (
                     <div>
                       <p className="text-xs text-gray-500">Reviewed by</p>
