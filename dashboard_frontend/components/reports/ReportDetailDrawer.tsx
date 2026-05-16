@@ -137,6 +137,17 @@ function MetaChip({
   );
 }
 
+const REVIEW_LABELS = [
+  "CALL_FOR_VIOLENCE",
+  "SECTARIAN_RELIGIOUS_INCITEMENT",
+  "HATE_SPEECH_GROUP",
+  "POLITICAL_VIOLENCE_INCITEMENT",
+  "WAR_CRIMES_DENIAL_JUSTIFICATION",
+  "TOXIC_PERSONAL_ATTACK",
+  "PROTECTED_POLITICAL_OPINION",
+  "NEUTRAL_OTHER",
+];
+
 export default function ReportDetailDrawer({
   report,
   isOpen,
@@ -150,10 +161,18 @@ export default function ReportDetailDrawer({
     report?.review_status ?? null
   );
   const [reviewSaving, setReviewSaving] = useState(false);
+  const [correctedLabel, setCorrectedLabel] = useState<string>(
+    report?.corrected_label ?? ""
+  );
+  const [reviewerNote, setReviewerNote] = useState<string>(
+    report?.reviewer_note ?? ""
+  );
 
   useEffect(() => {
     setReviewStatus(report?.review_status ?? null);
-  }, [report?.id, report?.review_status]);
+    setCorrectedLabel(report?.corrected_label ?? "");
+    setReviewerNote(report?.reviewer_note ?? "");
+  }, [report?.id, report?.review_status, report?.corrected_label, report?.reviewer_note]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -213,6 +232,29 @@ export default function ReportDetailDrawer({
       setToast({ kind: "ok", msg: "Review saved" });
     } catch (error) {
       console.error(error);
+      setToast({ kind: "err", msg: "Failed to save review" });
+    } finally {
+      setReviewSaving(false);
+    }
+  };
+
+  const handleSaveFullReview = async () => {
+    if (!report?.id || reviewSaving) return;
+    setReviewSaving(true);
+    try {
+      const res = await fetch("/api/reports/review", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          doc_id: report.id,
+          review_status: reviewStatus ?? "needs_review",
+          corrected_label: correctedLabel || null,
+          reviewer_note: reviewerNote || null,
+        }),
+      });
+      if (!res.ok) throw new Error("save failed");
+      setToast({ kind: "ok", msg: "Review saved" });
+    } catch {
       setToast({ kind: "err", msg: "Failed to save review" });
     } finally {
       setReviewSaving(false);
@@ -479,7 +521,7 @@ export default function ReportDetailDrawer({
                     type="button"
                     disabled={reviewSaving}
                     onClick={() => handleSaveReview("correct")}
-                    className="rounded-lg border border-emerald-500/40 px-3 py-1.5 text-xs font-medium text-emerald-200 hover:bg-emerald-500/10 disabled:opacity-50"
+                    className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition disabled:opacity-50 ${reviewStatus === "correct" ? "border-emerald-500/60 bg-emerald-500/20 text-emerald-200" : "border-emerald-500/40 text-emerald-200 hover:bg-emerald-500/10"}`}
                   >
                     Correct
                   </button>
@@ -487,7 +529,7 @@ export default function ReportDetailDrawer({
                     type="button"
                     disabled={reviewSaving}
                     onClick={() => handleSaveReview("incorrect")}
-                    className="rounded-lg border border-red-500/40 px-3 py-1.5 text-xs font-medium text-red-200 hover:bg-red-500/10 disabled:opacity-50"
+                    className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition disabled:opacity-50 ${reviewStatus === "incorrect" ? "border-red-500/60 bg-red-500/20 text-red-200" : "border-red-500/40 text-red-200 hover:bg-red-500/10"}`}
                   >
                     Incorrect
                   </button>
@@ -495,9 +537,45 @@ export default function ReportDetailDrawer({
                     type="button"
                     disabled={reviewSaving}
                     onClick={() => handleSaveReview("needs_review")}
-                    className="rounded-lg border border-yellow-500/40 px-3 py-1.5 text-xs font-medium text-yellow-200 hover:bg-yellow-500/10 disabled:opacity-50"
+                    className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition disabled:opacity-50 ${reviewStatus === "needs_review" ? "border-yellow-500/60 bg-yellow-500/20 text-yellow-200" : "border-yellow-500/40 text-yellow-200 hover:bg-yellow-500/10"}`}
                   >
                     Needs review
+                  </button>
+                </div>
+
+                <div className="space-y-3 border-t border-purple-500/20 pt-3">
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Corrected label</p>
+                    <select
+                      value={correctedLabel}
+                      onChange={(e) => setCorrectedLabel(e.target.value)}
+                      className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-gray-200 focus:outline-none focus:border-purple-500/60"
+                    >
+                      <option value="">- No correction -</option>
+                      {REVIEW_LABELS.map((l) => (
+                        <option key={l} value={l}>{l}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Reviewer note</p>
+                    <textarea
+                      value={reviewerNote}
+                      onChange={(e) => setReviewerNote(e.target.value)}
+                      rows={2}
+                      placeholder="Optional note..."
+                      className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-gray-200 resize-none focus:outline-none focus:border-purple-500/60"
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleSaveFullReview}
+                    disabled={reviewSaving}
+                    className="inline-flex items-center rounded-lg border border-purple-500/40 px-3 py-1.5 text-xs font-medium text-purple-200 hover:bg-purple-500/10 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {reviewSaving ? "Saving..." : "Save review"}
                   </button>
                 </div>
               </div>
