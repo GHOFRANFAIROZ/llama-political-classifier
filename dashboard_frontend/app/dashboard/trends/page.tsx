@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 
 import { useMemo, useState } from "react";
 import { useOrg } from "@/app/context/OrgContext";
+import { useAuth } from "@/app/context/AuthContext";
 import { motion } from "framer-motion";
 import {
   LineChart,
@@ -28,6 +29,8 @@ type PlatformTrend = {
   platform: string;
   hateReports: number;
 };
+
+type Scope = "org" | "public";
 
 type TrendsResponse = {
   timeseries?: any[];
@@ -103,20 +106,31 @@ function EmptyBox({ text }: { text: string }) {
 
 export default function TrendsPage() {
   const { currentOrg } = useOrg();
+  const { userProfile } = useAuth();
   const [dateRange, setDateRange] = useState<"7d" | "30d" | "all">("7d");
+  const [scope, setScope] = useState<Scope>("public");
 
   const orgId = currentOrg?.id || "";
+  const isAdmin = userProfile?.role === "admin";
+  const effectiveScope: Scope = isAdmin ? scope : "org";
+  const isPublicMode = effectiveScope === "public";
 
   const url = useMemo(() => {
-    if (!orgId) return "";
     const params = new URLSearchParams();
     params.set("date_range", dateRange);
+
+    if (isPublicMode) {
+      return `/api/reports/trends?${params.toString()}`;
+    }
+
+    if (!orgId) return "";
+
     return `/api/org/${orgId}/trends?${params.toString()}`;
-  }, [orgId, dateRange]);
+  }, [isPublicMode, orgId, dateRange]);
 
   const cacheKey = useMemo(
-    () => `trends::${orgId}::${dateRange}`,
-    [orgId, dateRange]
+    () => `trends::${effectiveScope}::${orgId || "none"}::${dateRange}`,
+    [effectiveScope, orgId, dateRange]
   );
 
   const { data, loading, error } = useCachedApi<TrendsResponse>({
@@ -124,7 +138,7 @@ export default function TrendsPage() {
     url,
     ttlMs: 60_000,
     persist: true,
-    enabled: !!orgId,
+    enabled: isPublicMode || !!orgId,
   });
 
   const timeseries = useMemo(() => {
@@ -183,6 +197,32 @@ export default function TrendsPage() {
         </div>
 
         <div className="flex flex-col items-end gap-2">
+          {isAdmin ? (
+            <div className="inline-flex rounded-xl border border-purple-900/70 bg-black/40 p-1">
+              <button
+                onClick={() => setScope("public")}
+                className={`px-3 py-1.5 text-xs rounded-lg transition ${
+                  effectiveScope === "public"
+                    ? "bg-purple-600/80 text-white"
+                    : "text-purple-300 hover:bg-purple-900/20"
+                }`}
+              >
+                Public
+              </button>
+              <button
+                onClick={() => setScope("org")}
+                disabled={!currentOrg}
+                className={`px-3 py-1.5 text-xs rounded-lg transition ${
+                  effectiveScope === "org"
+                    ? "bg-purple-600/80 text-white"
+                    : "text-purple-300 hover:bg-purple-900/20"
+                } ${!currentOrg ? "opacity-50 cursor-not-allowed" : ""}`}
+              >
+                Org
+              </button>
+            </div>
+          ) : null}
+
           <span className="text-xs text-purple-400 uppercase tracking-wide">
             Time window
           </span>
@@ -232,7 +272,7 @@ export default function TrendsPage() {
                   ? "..."
                   : peakPoint
                   ? formatShortDate(peakPoint.date)
-                  : "—"
+                  : "-"
               }
               subtext={
                 peakPoint ? `${peakPoint.totalReports} reports` : "No data"
