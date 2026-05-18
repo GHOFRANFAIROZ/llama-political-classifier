@@ -740,6 +740,75 @@ def get_org_trends(org_id: str, date_range: str = "30d") -> Dict[str, Any]:
             "byPlatform": by_platform,
         }
 # ================================
+# Get Public Trends
+# returns: timeseries + byPlatform (admin/public)
+# ================================
+def get_public_trends(date_range: str = "30d") -> Dict[str, Any]:
+    """
+    Public/admin trends over reports_public.
+    Scans filtered public reports and aggregates by day and harmful platform.
+    """
+    try:
+        ref = db.collection("reports_public")
+        ref, _, _ = _apply_date_filters(ref, date_range, None, None)
+        ref = ref.order_by("created_at")
+
+        timeseries_map: Dict[str, Dict[str, int]] = {}
+        platform_hate: Dict[str, int] = {}
+
+        for d in ref.stream():
+            data = d.to_dict() or {}
+            dt = _to_datetime(data.get("created_at")) or _to_datetime(data.get("post_time"))
+            if not dt:
+                continue
+
+            day = dt.date().isoformat()
+            label = data.get("label_id") or "UNKNOWN"
+            is_hate = label in HATE_LABELS
+
+            if day not in timeseries_map:
+                timeseries_map[day] = {"totalReports": 0, "hateReports": 0}
+
+            timeseries_map[day]["totalReports"] += 1
+
+            if is_hate:
+                timeseries_map[day]["hateReports"] += 1
+                platform = data.get("source") or data.get("platform") or "unknown"
+                platform_hate[platform] = platform_hate.get(platform, 0) + 1
+
+        timeseries = [
+            {"date": day, "totalReports": v["totalReports"], "hateReports": v["hateReports"]}
+            for day, v in sorted(timeseries_map.items(), key=lambda x: x[0])
+        ]
+
+        by_platform = [
+            {"platform": p, "hateReports": c}
+            for p, c in sorted(platform_hate.items(), key=lambda x: x[1], reverse=True)
+        ]
+
+        legacy_trends = {
+            day: {"total": v["totalReports"], "hate": v["hateReports"]}
+            for day, v in sorted(timeseries_map.items(), key=lambda x: x[0])
+        }
+
+        return {
+            "scope": "public",
+            "trends": legacy_trends,
+            "timeseries": timeseries,
+            "byPlatform": by_platform,
+        }
+
+    except Exception as e:
+        logger.error("[get_public_trends] failed: %s", e, exc_info=True)
+        return {
+            "scope": "public",
+            "trends": {},
+            "timeseries": [],
+            "byPlatform": [],
+            "error": "Failed to load public trends",
+        }
+
+# ================================
 # Get Wordcloud
 # returns: terms (frontend)
 # ================================

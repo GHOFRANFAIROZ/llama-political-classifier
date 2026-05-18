@@ -957,6 +957,37 @@ def search_reports():
         return jsonify({"error": "Internal server error"}), 500
 
 # ================================
+# PUBLIC TRENDS API
+# ================================
+@limiter.limit("60 per minute")
+@app.route("/api/reports/trends", methods=["GET"])
+def public_report_trends():
+    try:
+        from firestore_utils import get_public_trends
+
+        date_range = request.args.get("date_range", "30d", type=str)
+
+        logger.info(
+            f"req={request.request_id} [PUBLIC TRENDS ROUTE] date_range={date_range}"
+        )
+
+        data = get_public_trends(date_range=date_range)
+
+        logger.info(
+            f"req={request.request_id} [PUBLIC TRENDS ROUTE] done points={len(data.get('timeseries', []))}"
+        )
+
+        return jsonify(data), 200
+
+    except Exception as e:
+        logger.error(
+            f"req={getattr(request, 'request_id', 'unknown')} [PUBLIC TRENDS ERROR] {e}",
+            exc_info=True,
+        )
+        return jsonify({"error": "Internal server error"}), 500
+
+
+# ================================
 # REVIEW PUBLIC REPORT
 # ================================
 @app.route("/api/reports/review", methods=["PATCH"])
