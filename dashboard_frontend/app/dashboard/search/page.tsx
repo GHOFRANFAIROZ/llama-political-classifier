@@ -9,6 +9,7 @@ import {
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { useOrg } from "@/app/context/OrgContext";
+import { useAuth } from "@/app/context/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import type { ReportItem } from "@/app/lib/reports/types";
 import ReportDetailDrawer from "@/components/reports/ReportDetailDrawer";
@@ -45,8 +46,8 @@ const DATE_RANGES = [
 const SORT_OPTIONS = [
   { id: "created_at_desc", label: "Newest first" },
   { id: "created_at_asc", label: "Oldest first" },
-  { id: "toxicity_desc", label: "Toxicity (high → low)" },
-  { id: "toxicity_asc", label: "Toxicity (low → high)" },
+  { id: "toxicity_desc", label: "Toxicity (high to low)" },
+  { id: "toxicity_asc", label: "Toxicity (low to high)" },
 ] as const;
 
 type SortId = (typeof SORT_OPTIONS)[number]["id"];
@@ -181,6 +182,7 @@ function matchesParseStatusFilter(
 
 function SearchPageContent() {
   const { currentOrg, orgsLoading, orgsError, orgs } = useOrg();
+  const { userProfile } = useAuth();
   const searchParams = useSearchParams();
 
   const [query, setQuery] = useState("");
@@ -197,9 +199,17 @@ function SearchPageContent() {
   const [scope, setScope] = useState<Scope>(currentOrg ? "org" : "public");
   const scopeTouchedRef = useRef(false);
 
+  const isAdmin = userProfile?.role === "admin";
+  const effectiveScope: Scope = isAdmin ? scope : "org";
+
   useEffect(() => {
+    if (!isAdmin) {
+      setScope("org");
+      return;
+    }
+
     if (!scopeTouchedRef.current) setScope(currentOrg ? "org" : "public");
-  }, [currentOrg]);
+  }, [currentOrg, isAdmin]);
 
   const [platform, setPlatform] = useState<string>("All platforms");
   const [classification, setClassification] =
@@ -263,9 +273,9 @@ function SearchPageContent() {
 
     chips.push({
       key: "scope",
-      label: scope === "org" ? "Scope: Org" : "Scope: Public",
+      label: effectiveScope === "org" ? "Scope: Org" : "Scope: Public",
       onRemove:
-        scope === "org"
+        isAdmin && effectiveScope === "org"
           ? () => {
               scopeTouchedRef.current = true;
               setScope("public");
@@ -350,7 +360,8 @@ function SearchPageContent() {
 
     return chips;
   }, [
-    scope,
+    effectiveScope,
+    isAdmin,
     debouncedQuery,
     platform,
     classification,
@@ -370,7 +381,7 @@ function SearchPageContent() {
 
       const params = new URLSearchParams();
 
-      if (scope === "org") {
+      if (effectiveScope === "org") {
         if (!currentOrg?.id) {
           setRawReports([]);
           setTotalFromApi(0);
@@ -437,7 +448,7 @@ function SearchPageContent() {
     void fetchReports();
     return () => controller.abort();
   }, [
-    scope,
+    effectiveScope,
     currentOrg?.id,
     debouncedQuery,
     platform,
@@ -458,7 +469,7 @@ function SearchPageContent() {
     });
   }, [rawReports, onlyFallback, onlyReviewRecommended, parseStatusFilter]);
 
-  const showNoOrgState = scope === "org" && !orgsLoading && !currentOrg;
+  const showNoOrgState = effectiveScope === "org" && !orgsLoading && !currentOrg;
 
   const resultsLabel = useMemo(() => {
     if (showNoOrgState) return "No organization selected";
@@ -470,13 +481,11 @@ function SearchPageContent() {
   }, [showNoOrgState, loading, rawReports.length, error, reports.length]);
 
   const showingLabel = useMemo(() => {
-    if (reports.length === 0) return "Showing 0";
-    const offset = (page - 1) * limit;
-    const from = offset + 1;
-    const to = offset + reports.length;
+    const from = reports.length ? (page - 1) * limit + 1 : 0;
+    const to = reports.length ? (page - 1) * limit + reports.length : 0;
 
-    if (totalFromApi == null) return `Showing ${from}–${to}`;
-    return `Showing ${from}–${to} of ${totalFromApi}`;
+    if (totalFromApi == null) return `Showing ${from}-${to}`;
+    return `Showing ${from}-${to} of ${totalFromApi}`;
   }, [page, limit, reports.length, totalFromApi]);
 
   const canGoPrev = page > 1;
@@ -500,10 +509,10 @@ function SearchPageContent() {
 
             <div className="mt-3 flex items-center gap-2 flex-wrap">
               <span className="text-[11px] px-2.5 py-1 rounded-full border border-purple-500/40 bg-purple-500/10 text-purple-200">
-                {scope === "org" ? "Org workspace" : "Public"}
+                {effectiveScope === "org" ? "Org workspace" : "Public"}
               </span>
 
-              {scope === "org" && currentOrg ? (
+              {effectiveScope === "org" && currentOrg ? (
                 <span className="text-xs text-purple-500">
                   Active workspace:{" "}
                   <span className="text-purple-200 font-medium">
@@ -579,26 +588,28 @@ function SearchPageContent() {
                   }}
                   disabled={!currentOrg}
                   className={`px-3 py-2 text-xs rounded-lg transition ${
-                    scope === "org"
+                    effectiveScope === "org"
                       ? "bg-purple-600/80 text-white"
                       : "text-purple-300 hover:bg-purple-900/20"
                   } ${!currentOrg ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   Org
                 </button>
-                <button
-                  onClick={() => {
-                    scopeTouchedRef.current = true;
-                    setScope("public");
-                  }}
-                  className={`px-3 py-2 text-xs rounded-lg transition ${
-                    scope === "public"
-                      ? "bg-purple-600/80 text-white"
-                      : "text-purple-300 hover:bg-purple-900/20"
-                  }`}
-                >
-                  Public
-                </button>
+                {isAdmin ? (
+                  <button
+                    onClick={() => {
+                      scopeTouchedRef.current = true;
+                      setScope("public");
+                    }}
+                    className={`px-3 py-2 text-xs rounded-lg transition ${
+                      effectiveScope === "public"
+                        ? "bg-purple-600/80 text-white"
+                        : "text-purple-300 hover:bg-purple-900/20"
+                    }`}
+                  >
+                    Public
+                  </button>
+                ) : null}
               </div>
             </div>
 
@@ -740,7 +751,7 @@ function SearchPageContent() {
             </h2>
 
             <span className="text-xs text-purple-400">
-              {error ? "Error" : loading ? "Fetching…" : showingLabel}
+              {error ? "Error" : loading ? "Fetching..." : showingLabel}
             </span>
           </div>
 
