@@ -809,6 +809,60 @@ def get_public_trends(date_range: str = "30d") -> Dict[str, Any]:
         }
 
 # ================================
+# Get Public Wordcloud
+# returns: terms (admin/public)
+# ================================
+def get_public_wordcloud(date_range: str = "30d", top_k: int = 80) -> Dict[str, Any]:
+    """
+    Public/admin wordcloud over reports_public.
+    Scan-based MVP using searchable_tokens, with text/reason fallback.
+    """
+    try:
+        ref = db.collection("reports_public")
+
+        if date_range not in {"all", "all_time"}:
+            ref, _, _ = _apply_date_filters(ref, date_range, None, None)
+
+        freq: Dict[str, int] = {}
+
+        for d in ref.stream():
+            data = d.to_dict() or {}
+            tokens = data.get("searchable_tokens") or []
+
+            if not tokens:
+                text = str(data.get("text") or "").strip()
+                reason = str(data.get("reason_ar") or "").strip()
+
+                tokens = _tokenize(text)
+                if len(tokens) < 8 and reason:
+                    tokens += _tokenize(reason)
+
+            for t in tokens:
+                token = str(t).lower().strip()
+                if not _is_meaningful_token(token):
+                    continue
+                freq[token] = freq.get(token, 0) + 1
+
+        sorted_terms = sorted(freq.items(), key=lambda x: x[1], reverse=True)[:top_k]
+        terms = [{"term": w, "count": c, "category": None} for w, c in sorted_terms]
+        legacy_global = [{"word": w, "count": c} for w, c in sorted_terms]
+
+        return {
+            "scope": "public",
+            "global_wordcloud": legacy_global,
+            "terms": terms,
+        }
+
+    except Exception as e:
+        logger.error("[get_public_wordcloud] failed: %s", e, exc_info=True)
+        return {
+            "scope": "public",
+            "global_wordcloud": [],
+            "terms": [],
+            "error": "Failed to load public wordcloud",
+        }
+
+# ================================
 # Get Wordcloud
 # returns: terms (frontend)
 # ================================

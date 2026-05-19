@@ -986,6 +986,36 @@ def public_report_trends():
         )
         return jsonify({"error": "Internal server error"}), 500
 
+# ================================
+# PUBLIC WORDCLOUD API
+# ================================
+@limiter.limit("60 per minute")
+@app.route("/api/reports/wordcloud", methods=["GET"])
+def public_report_wordcloud():
+    try:
+        from firestore_utils import get_public_wordcloud
+
+        date_range = request.args.get("date_range", "30d", type=str)
+
+        logger.info(
+            f"req={request.request_id} [PUBLIC WORDCLOUD ROUTE] date_range={date_range}"
+        )
+
+        data = get_public_wordcloud(date_range=date_range)
+
+        logger.info(
+            f"req={request.request_id} [PUBLIC WORDCLOUD ROUTE] done terms={len(data.get('terms', []))}"
+        )
+
+        return jsonify(data), 200
+
+    except Exception as e:
+        logger.error(
+            f"req={getattr(request, 'request_id', 'unknown')} [PUBLIC WORDCLOUD ERROR] {e}",
+            exc_info=True,
+        )
+        return jsonify({"error": "Internal server error"}), 500
+
 
 # ================================
 # REVIEW PUBLIC REPORT
