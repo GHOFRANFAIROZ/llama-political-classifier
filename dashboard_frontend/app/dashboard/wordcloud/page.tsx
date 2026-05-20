@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 
 import { useMemo, useState } from "react";
 import { useOrg } from "@/app/context/OrgContext";
+import { useAuth } from "@/app/context/AuthContext";
 import { motion } from "framer-motion";
 import { useCachedApi } from "@/app/lib/useCachedApi";
 
@@ -17,6 +18,8 @@ type WordcloudResponse = {
   items?: any[];
   data?: any[];
 };
+
+type Scope = "org" | "public";
 
 function normalizeTerm(item: any): WordcloudTerm {
   return {
@@ -81,20 +84,31 @@ function EmptyBox({ text }: { text: string }) {
 
 export default function WordcloudPage() {
   const { currentOrg } = useOrg();
+  const { userProfile } = useAuth();
+
   const [dateRange, setDateRange] = useState<"7d" | "30d" | "all">("7d");
+  const [scope, setScope] = useState<Scope>(currentOrg ? "org" : "public");
 
   const orgId = currentOrg?.id || "";
+  const isAdmin = userProfile?.role === "admin";
+  const effectiveScope: Scope = isAdmin ? scope : "org";
+  const isPublicMode = effectiveScope === "public";
 
   const url = useMemo(() => {
-    if (!orgId) return "";
     const params = new URLSearchParams();
     params.set("date_range", dateRange);
+
+    if (isPublicMode) {
+      return `/api/reports/wordcloud?${params.toString()}`;
+    }
+
+    if (!orgId) return "";
     return `/api/org/${orgId}/wordcloud?${params.toString()}`;
-  }, [orgId, dateRange]);
+  }, [dateRange, isPublicMode, orgId]);
 
   const cacheKey = useMemo(
-    () => `wordcloud::${orgId}::${dateRange}`,
-    [orgId, dateRange]
+    () => `wordcloud::${effectiveScope}::${orgId || "public"}::${dateRange}`,
+    [dateRange, effectiveScope, orgId]
   );
 
   const { data, loading, error } = useCachedApi<WordcloudResponse>({
@@ -102,12 +116,13 @@ export default function WordcloudPage() {
     url,
     ttlMs: 60_000,
     persist: true,
-    enabled: !!orgId,
+    enabled: isPublicMode || !!orgId,
   });
 
   const terms = useMemo(() => {
     const raw = data?.terms ?? data?.items ?? data?.data ?? [];
     if (!Array.isArray(raw)) return [];
+
     return raw
       .map(normalizeTerm)
       .filter((item) => item.term && Number.isFinite(item.count) && item.count > 0)
@@ -122,7 +137,7 @@ export default function WordcloudPage() {
   const uniqueTerms = terms.length;
 
   const topCategoryLabel = useMemo(() => {
-    if (terms.length === 0) return "—";
+    if (terms.length === 0) return "-";
 
     const counts: Record<string, number> = {};
     for (const t of terms) {
@@ -134,7 +149,7 @@ export default function WordcloudPage() {
     return getCategoryLabel(sorted[0]?.[0] ?? "other");
   }, [terms]);
 
-  const topTerm = terms[0]?.term ?? "—";
+  const topTerm = terms[0]?.term ?? "-";
 
   return (
     <motion.div
@@ -148,22 +163,58 @@ export default function WordcloudPage() {
           <h1 className="text-3xl md:text-4xl font-bold text-purple-100">
             Wordcloud
           </h1>
+
           <p className="text-purple-400 max-w-2xl">
             Explore which groups, communities, and entities are most frequently
             referenced in the active workspace.
           </p>
-          {currentOrg && (
-            <p className="text-xs text-purple-500 mt-1">
-              Active workspace:{" "}
-              <span className="text-purple-200 font-medium">{currentOrg.name}</span>
-            </p>
-          )}
+
+          <div className="mt-3 flex items-center gap-2 flex-wrap">
+            <span className="text-[11px] px-2.5 py-1 rounded-full border border-purple-500/40 bg-purple-500/10 text-purple-200">
+              {isPublicMode ? "Public" : "Org workspace"}
+            </span>
+
+            {!isPublicMode && currentOrg ? (
+              <span className="text-xs text-purple-500">
+                Active workspace:{" "}
+                <span className="text-purple-200 font-medium">
+                  {currentOrg.name}
+                </span>
+              </span>
+            ) : null}
+          </div>
         </div>
 
         <div className="flex flex-col items-end gap-2">
+          <div className="flex gap-2">
+            <button
+              onClick={() => setScope("org")}
+              disabled={!currentOrg}
+              className={`px-3 py-1.5 text-xs rounded-full border transition ${effectiveScope === "org"
+                ? "bg-purple-600/80 border-purple-300 text-white"
+                : "bg-black/40 border-purple-900/70 text-purple-300 hover:border-purple-500"
+                } ${!currentOrg ? "opacity-50 cursor-not-allowed" : ""}`}
+            >
+              Org
+            </button>
+
+            {isAdmin ? (
+              <button
+                onClick={() => setScope("public")}
+                className={`px-3 py-1.5 text-xs rounded-full border transition ${effectiveScope === "public"
+                  ? "bg-purple-600/80 border-purple-300 text-white"
+                  : "bg-black/40 border-purple-900/70 text-purple-300 hover:border-purple-500"
+                  }`}
+              >
+                Public
+              </button>
+            ) : null}
+          </div>
+
           <span className="text-xs text-purple-400 uppercase tracking-wide">
             Time window
           </span>
+
           <div className="flex gap-2">
             {[
               { id: "7d", label: "Last 7 days" },
@@ -173,11 +224,10 @@ export default function WordcloudPage() {
               <button
                 key={r.id}
                 onClick={() => setDateRange(r.id as "7d" | "30d" | "all")}
-                className={`px-3 py-1.5 text-xs rounded-full border transition ${
-                  dateRange === r.id
-                    ? "bg-purple-600/80 border-purple-300 text-white"
-                    : "bg-black/40 border-purple-900/70 text-purple-300 hover:border-purple-500"
-                }`}
+                className={`px-3 py-1.5 text-xs rounded-full border transition ${dateRange === r.id
+                  ? "bg-purple-600/80 border-purple-300 text-white"
+                  : "bg-black/40 border-purple-900/70 text-purple-300 hover:border-purple-500"
+                  }`}
               >
                 {r.label}
               </button>
@@ -186,16 +236,28 @@ export default function WordcloudPage() {
         </div>
       </div>
 
-      {!orgId ? (
+      {!isPublicMode && !orgId ? (
         <div className="rounded-2xl border border-purple-900/60 bg-[#120F18] p-6 text-sm text-purple-300">
           Select an organization to view wordcloud insights.
         </div>
       ) : (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-            <SummaryCard label="Unique terms" value={uniqueTerms} loading={loading} />
-            <SummaryCard label="Total mentions" value={totalMentions} loading={loading} />
-            <SummaryCard label="Top category" value={topCategoryLabel} loading={loading} />
+            <SummaryCard
+              label="Unique terms"
+              value={uniqueTerms}
+              loading={loading}
+            />
+            <SummaryCard
+              label="Total mentions"
+              value={totalMentions}
+              loading={loading}
+            />
+            <SummaryCard
+              label="Top category"
+              value={topCategoryLabel}
+              loading={loading}
+            />
             <SummaryCard label="Top term" value={topTerm} loading={loading} />
           </div>
 
@@ -205,6 +267,7 @@ export default function WordcloudPage() {
                 <h2 className="text-sm font-semibold text-purple-100">
                   Targeted groups & entities
                 </h2>
+
                 <span className="text-[11px] text-purple-400">
                   {loading ? "Loading..." : `${terms.length} terms`}
                 </span>
@@ -213,7 +276,9 @@ export default function WordcloudPage() {
               {error ? (
                 <ErrorBox message={error} />
               ) : loading && terms.length === 0 ? (
-                <div className="py-10 text-center text-purple-400">Loading terms...</div>
+                <div className="py-10 text-center text-purple-400">
+                  Loading terms...
+                </div>
               ) : terms.length === 0 ? (
                 <EmptyBox text="No term data for this period." />
               ) : (
@@ -227,7 +292,7 @@ export default function WordcloudPage() {
                         key={term.term}
                         className={`px-2.5 py-1 rounded-full border ${border} text-purple-100 bg-purple-500/10`}
                         style={{ fontSize: size }}
-                        title={`${term.term} • ${term.count}`}
+                        title={`${term.term} - ${term.count}`}
                       >
                         {term.term}
                         <span className="ml-1 text-[10px] text-purple-300">
@@ -244,10 +309,12 @@ export default function WordcloudPage() {
                   <span className="w-3 h-3 rounded-full border border-emerald-500 bg-emerald-500/10" />
                   group / community
                 </span>
+
                 <span className="flex items-center gap-2">
                   <span className="w-3 h-3 rounded-full border border-sky-500 bg-sky-500/10" />
                   individual / person
                 </span>
+
                 <span className="flex items-center gap-2">
                   <span className="w-3 h-3 rounded-full border border-amber-500 bg-amber-500/10" />
                   political / public entity
@@ -260,6 +327,7 @@ export default function WordcloudPage() {
                 <h2 className="text-sm font-semibold text-purple-100">
                   Top terms
                 </h2>
+
                 <span className="text-[11px] text-purple-400">
                   {loading ? "Loading..." : `${Math.min(10, terms.length)} shown`}
                 </span>
@@ -280,10 +348,12 @@ export default function WordcloudPage() {
                         <p className="text-sm font-medium text-purple-100 truncate">
                           {index + 1}. {term.term}
                         </p>
+
                         <p className="text-[11px] text-purple-500">
                           {getCategoryLabel(term.category)}
                         </p>
                       </div>
+
                       <span className="text-sm font-semibold text-purple-200">
                         {term.count}
                       </span>
