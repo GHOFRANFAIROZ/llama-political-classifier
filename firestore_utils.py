@@ -167,34 +167,39 @@ ENGLISH_STOPWORDS = {
 }
 
 GENERIC_NOISE_TERMS = {
+    # Arabic content/meta words
     "النص",
-        "يجب",
-    "ويجب",
-    "يتضمن",
-    "يحتوي",
-    "مباشر",
-    "مباشرًا",
-    "مباشرة",
-    "مباشرةً",
-    "وصفي",
-    "ووصفي",
-    "تحليلي",
-    "وتحليلي",
-    "تحليلية",
-    "ناقشنا",
-    "أمر",
-    "جديد",
-    "عام",
-    "محتوى",
     "المحتوى",
+    "محتوى",
     "منشور",
     "منشورات",
-    "اليوم",
     "عام",
+    "عامة",
     "بشكل",
     "بصورة",
     "شيء",
     "أشياء",
+    "اليوم",
+
+    # Arabic classifier/model artifacts
+    "النموذج",
+    "استخراج",
+    "تصنيف",
+    "التصنيف",
+    "تعذر",
+    "موثوق",
+    "جزئياً",
+    "جزئيًا",
+    "الرد",
+    "جاء",
+    "مقطوعاً",
+    "مقطوعًا",
+    "ينصح",
+    "يُنصح",
+    "بإعادة",
+    "المحاولة",
+
+    # English generic/content words
     "there",
     "here",
     "content",
@@ -202,6 +207,10 @@ GENERIC_NOISE_TERMS = {
     "posts",
     "general",
     "today",
+
+    # English classifier/model artifacts
+    "summary",
+    "codex",
 }
 
 def _is_meaningful_token(token: str) -> bool:
